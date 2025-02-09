@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Técnicos - Sistema</title>
+    <link rel="stylesheet" href="p5.css">
+</head>
+<body>
+    <nav class="menu-principal">
+        <a href="p2.html">Solicitações</a>
+        <a href="p3.html">Estoque</a>
+        <a href="p4.html" class="active">Técnicos</a>
+        <a href="p6.html">Relatorio</a>
+        <div class="user-info">
+            <span id="username-display"></span>
+            <button onclick="logout()" class="logout-btn">Sair</button>
+        </div>
+    </nav>
+
+    <main>
+        <h1>Gestão de Técnicos</h1>
+        
+        <section class="novo-tecnico">
+            <h2>Cadastrar Novo Técnico</h2>
+            <form id="tecnicoForm">
+                <div class="form-group">
+                    <label>Nome:</label>
+                    <input type="text" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Email:</label>
+                    <input type="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label>Telefone:</label>
+                    <input type="tel" name="telefone" required>
+                </div>
+                <div class="form-group">
+                    <label>Especialidades:</label>
+                    <div class="checkbox-group">
+                        <label><input type="checkbox" name="especialidade" value="Hardware"> Hardware</label>
+                        <label><input type="checkbox" name="especialidade" value="Software"> Software</label>
+                        <label><input type="checkbox" name="especialidade" value="Redes"> Redes</label>
+                        <label><input type="checkbox" name="especialidade" value="Suporte"> Suporte</label>
+                        <label><input type="checkbox" name="especialidade" value="Manutenção"> Manutenção</label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Nível:</label>
+                    <select name="nivel">
+                        <option value="Junior">Júnior</option>
+                        <option value="Pleno">Pleno</option>
+                        <option value="Senior">Sênior</option>
+                    </select>
+                </div>
+                <button type="submit">Cadastrar Técnico</button>
+            </form>
+        </section>
+
+        <section class="lista-tecnicos">
+            <h2>Técnicos Cadastrados</h2>
+            <div class="filtros">
+                <button class="filtro-btn active" onclick="filtrarTecnicos('todos')">Todos</button>
+                <button class="filtro-btn" onclick="filtrarTecnicos('Disponível')">Disponíveis</button>
+                <button class="filtro-btn" onclick="filtrarTecnicos('Ocupado')">Ocupados</button>
+            </div>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nome</th>
+                        <th>Email</th>
+                        <th>Telefone</th>
+                        <th>Especialidades</th>
+                        <th>Nível</th>
+                        <th>Status</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tecnicosTable"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        if (!localStorage.getItem('loggedIn')) {
+            window.location.href = 'p1.html';
+        }
+
+        document.getElementById('username-display').textContent = 
+            `Olá, ${localStorage.getItem('username')}`;
+
+        let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+        let filtroAtual = 'todos';
+
+        document.getElementById('tecnicoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            
+            const especialidadesSelecionadas = Array.from(
+                document.querySelectorAll('input[name="especialidade"]:checked')
+            ).map(input => input.value);
+
+            const novoTecnico = {
+                id: Date.now(),
+                nome: formData.get('nome'),
+                email: formData.get('email'),
+                telefone: formData.get('telefone'),
+                especialidade: especialidadesSelecionadas,
+                nivel: formData.get('nivel'),
+                status: 'Disponível',
+                dataCadastro: new Date().toLocaleDateString()
+            };
+
+            tecnicos.push(novoTecnico);
+            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            renderizarTecnicos();
+            e.target.reset();
+        });
+
+        function atualizarStatus(id, novoStatus) {
+            tecnicos = tecnicos.map(t => {
+                if (t.id === id) {
+                    return { ...t, status: novoStatus };
+                }
+                return t;
+            });
+            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            renderizarTecnicos();
+        }
+
+        function filtrarTecnicos(status) {
+            filtroAtual = status;
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(status)) {
+                    btn.classList.add('active');
+                }
+            });
+            renderizarTecnicos();
+        }
+
+        function renderizarTecnicos() {
+            const tbody = document.getElementById('tecnicosTable');
+            let tecnicosFiltrados = tecnicos;
+            
+            if (filtroAtual !== 'todos') {
+                tecnicosFiltrados = tecnicos.filter(t => t.status === filtroAtual);
+            }
+
+            tbody.innerHTML = tecnicosFiltrados.map(t => `
+                <tr class="status-${t.status.toLowerCase()}">
+                    <td>${t.nome}</td>
+                    <td>${t.email}</td>
+                    <td>${t.telefone}</td>
+                    <td>${t.especialidade.join(', ')}</td>
+                    <td>${t.nivel}</td>
+                    <td>
+                        <select onchange="atualizarStatus(${t.id}, this.value)" 
+                                class="status-select ${t.status.toLowerCase()}">
+                            <option value="Disponível" ${t.status === 'Disponível' ? 'selected' : ''}>
+                                Disponível
+                            </option>
+                            <option value="Ocupado" ${t.status === 'Ocupado' ? 'selected' : ''}>
+                                Ocupado
+                            </option>
+                        </select>
+                    </td>
+                    <td>
+                        <button onclick="editarTecnico(${t.id})" class="btn-editar">Editar</button>
+                        <button onclick="deletarTecnico(${t.id})" class="btn-excluir">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function editarTecnico(id) {
+            const tecnico = tecnicos.find(t => t.id === id);
+            if (tecnico) {
+                // Preencher formulário com dados do técnico
+                const form = document.getElementById('tecnicoForm');
+                form.nome.value = tecnico.nome;
+                form.email.value = tecnico.email;
+                form.telefone.value = tecnico.telefone;
+                form.nivel.value = tecnico.nivel;
+                
+                // Marcar checkboxes de especialidades
+                document.querySelectorAll('input[name="especialidade"]').forEach(checkbox => {
+                    checkbox.checked = tecnico.especialidade.includes(checkbox.value);
+                });
+
+                // Mudar botão para "Atualizar"
+                const submitBtn = form.querySelector('button[type="submit"]');
+                submitBtn.textContent = 'Atualizar Técnico';
+                form.dataset.editando = id;
+            }
+        }
+
+        function deletarTecnico(id) {
+            if (confirm('Tem certeza que deseja excluir este técnico?')) {
+                tecnicos = tecnicos.filter(t => t.id !== id);
+                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                renderizarTecnicos();
+            }
+        }
+
+        renderizarTecnicos();
+    </script>
+</body>
+</html>

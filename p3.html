@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque - Sistema</title>
+    <link rel="stylesheet" href="p5.css">
+</head>
+<body>
+    <nav class="menu-principal">
+        <a href="p2.html">Solicitações</a>
+        <a href="p3.html" class="active">Estoque</a>
+        <a href="p4.html">Técnicos</a>
+        <a href="p6.html" class="active">Relatorio</a>
+        <div class="user-info">
+            <span id="username-display"></span>
+            <button onclick="logout()" class="logout-btn">Sair</button>
+        </div>
+    </nav>
+
+    <main>
+        <h1>Controle de Estoque</h1>
+        
+        <section class="novo-item">
+            <h2>Novo Item</h2>
+            <form id="estoqueForm">
+                <div class="form-group">
+                    <label>Item:</label>
+                    <input type="text" name="nome" required>
+                </div>
+                <div class="form-group">
+                    <label>Quantidade:</label>
+                    <input type="number" name="quantidade" required>
+                </div>
+                <div class="form-group">
+                    <label>Categoria:</label>
+                    <select name="categoria">
+                        <option>Hardware</option>
+                        <option>Software</option>
+                        <option>Periféricos</option>
+                    </select>
+                </div>
+                <button type="submit">Adicionar Item</button>
+            </form>
+        </section>
+
+        <section class="lista-estoque">
+            <h2>Itens em Estoque</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Item</th>
+                        <th>Quantidade</th>
+                        <th>Categoria</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="estoqueTable"></tbody>
+            </table>
+        </section>
+    </main>
+
+    <script>
+        // Verificação de login
+        if (!localStorage.getItem('loggedIn')) {
+            window.location.href = 'p1.html';
+        }
+
+        // Exibir nome do usuário
+        document.getElementById('username-display').textContent = 
+            `Olá, ${localStorage.getItem('username')}`;
+
+        // Função de logout
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'p1.html';
+        }
+
+        // Gerenciamento de estoque
+        let estoque = JSON.parse(localStorage.getItem('estoque')) || [];
+
+        document.getElementById('estoqueForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const novoItem = {
+                id: Date.now(),
+                nome: formData.get('nome'),
+                quantidade: formData.get('quantidade'),
+                categoria: formData.get('categoria')
+            };
+            estoque.push(novoItem);
+            localStorage.setItem('estoque', JSON.stringify(estoque));
+            renderizarEstoque();
+            e.target.reset();
+        });
+
+        function renderizarEstoque() {
+            const tbody = document.getElementById('estoqueTable');
+            tbody.innerHTML = estoque.map(item => `
+                <tr>
+                    <td>${item.nome}</td>
+                    <td>${item.quantidade}</td>
+                    <td>${item.categoria}</td>
+                    <td>
+                        <button onclick="deletarItem(${item.id})">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deletarItem(id) {
+            estoque = estoque.filter(item => item.id !== id);
+            localStorage.setItem('estoque', JSON.stringify(estoque));
+            renderizarEstoque();
+        }
+
+        renderizarEstoque();
+    </script>
+</body>
+</html>
