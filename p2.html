@@ -100,6 +100,7 @@
                             ${username === 'técnico' ? getStatusSelector(s) : s.status}
                         </td>
                         <td>
+                            ${username === 'gestor' ? getVerificarEstoqueButton(s) : ''}
                             <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
                         </td>
                     </tr>
@@ -126,6 +127,12 @@
                     <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
                 </select>
+            `;
+        }
+
+        function getVerificarEstoqueButton(solicitacao) {
+            return `
+                <button onclick="verificarEstoque(${solicitacao.id})" class="btn-verificar">Verificar Estoque</button>
             `;
         }
 
@@ -159,10 +166,23 @@
                         tecnico.status = 'Disponível';
                         localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
                     }
+                    alert('Equipamento foi entregue com sucesso!');
                 }
 
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 renderizarSolicitacoes();
+            }
+        }
+
+        function verificarEstoque(id) {
+            let solicitacao = solicitacoes.find(s => s.id === id);
+            let estoque = JSON.parse(localStorage.getItem('estoque')) || [];
+            let itemEstoque = estoque.find(e => e.equipamento === solicitacao.equipamento);
+
+            if (itemEstoque) {
+                alert('Item existe no estoque.');
+            } else {
+                alert('Nota de compra feita com sucesso!');
             }
         }
 
