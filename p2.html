@@ -79,33 +79,9 @@
 
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
-        // Função para gerar um ID único para cada solicitação
-        function gerarId() {
-            return solicitacoes.length > 0 ? Math.max(...solicitacoes.map(s => s.id)) + 1 : 1;
-        }
-
-        // Adicionar nova solicitação
-        document.getElementById('solicitacaoForm').addEventListener('submit', function (e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const novaSolicitacao = {
-                id: gerarId(),
-                solicitante: formData.get('solicitante'),
-                equipamento: formData.get('equipamento'),
-                prioridade: formData.get('prioridade'),
-                tecnicoId: null,
-                tecnicoNome: null,
-                status: 'em espera'
-            };
-            solicitacoes.push(novaSolicitacao);
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            renderizarSolicitacoes();
-            e.target.reset(); // Limpar o formulário
-        });
-
         function carregarTecnicos() {
             const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos;
+            return tecnicos.filter(t => t.status === 'Disponível');
         }
 
         function renderizarSolicitacoes() {
@@ -121,11 +97,9 @@
                             ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
                         </td>
                         <td>
-                            ${username === 'técnico' || username === 'gestor' ? getStatusSelector(s) : s.status}
+                            ${username === 'técnico' ? getStatusSelector(s) : s.status}
                         </td>
                         <td>
-                            ${username === 'gestor' || username === 'técnico' ? `<button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>` : ''}
-                            ${username === 'gestor' ? `<button onclick="verificarEstoque(${s.id})" class="btn-verificar">Verificar Estoque</button>` : ''}
                             <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
                         </td>
                     </tr>
@@ -136,7 +110,7 @@
         function getTecnicoSelector(solicitacao) {
             const tecnicosDisponiveis = carregarTecnicos();
             return `
-                <select id="tecnico-${solicitacao.id}">
+                <select onchange="designarTecnico(${solicitacao.id}, this.value)">
                     <option value="">Selecione um técnico</option>
                     ${tecnicosDisponiveis.map(t => `
                         <option value="${t.id}" ${t.id === solicitacao.tecnicoId ? 'selected' : ''}>${t.nome}</option>
@@ -147,7 +121,7 @@
 
         function getStatusSelector(solicitacao) {
             return `
-                <select id="status-${solicitacao.id}">
+                <select onchange="atualizarStatus(${solicitacao.id}, this.value)">
                     <option value="em espera" ${solicitacao.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
                     <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
@@ -155,32 +129,60 @@
             `;
         }
 
-        function atualizarSolicitacao(id) {
-            const solicitacao = solicitacoes.find(s => s.id === id);
-            const tecnicoSelect = document.getElementById(`tecnico-${id}`);
-            const statusSelect = document.getElementById(`status-${id}`);
+        function designarTecnico(id, tecnicoId) {
+            let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            let tecnico = tecnicos.find(t => t.id == tecnicoId);
+            let solicitacao = solicitacoes.find(s => s.id === id);
 
-            if (username === 'gestor' && tecnicoSelect) {
-                const tecnicoId = tecnicoSelect.value;
-                if (tecnicoId) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    const tecnico = tecnicos.find(t => t.id == tecnicoId);
+            if (solicitacao && tecnico) {
+                solicitacao.tecnicoId = tecnicoId;
+                solicitacao.tecnicoNome = tecnico.nome;
+                solicitacao.status = 'em andamento';
+                tecnico.status = 'Ocupado';
+
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                renderizarSolicitacoes();
+            }
+        }
+
+        function atualizarStatus(id, novoStatus) {
+            let solicitacao = solicitacoes.find(s => s.id === id);
+
+            if (solicitacao) {
+                solicitacao.status = novoStatus;
+
+                if (novoStatus === 'concluido' && solicitacao.tecnicoId) {
+                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
                     if (tecnico) {
-                        solicitacao.tecnicoId = tecnicoId;
-                        solicitacao.tecnicoNome = tecnico.nome;
-                        solicitacao.status = 'em andamento';
-                        tecnico.status = 'Ocupado';
+                        tecnico.status = 'Disponível';
+                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
                     }
                 }
-            }
 
-            if (statusSelect) {
-                solicitacao.status = statusSelect.value;
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                renderizarSolicitacoes();
             }
+        }
 
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-            renderizarSolicitacoes();
+        function deletarSolicitacao(id) {
+            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
+                let solicitacao = solicitacoes.find(s => s.id === id);
+
+                if (solicitacao && solicitacao.tecnicoId) {
+                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+                    if (tecnico) {
+                        tecnico.status = 'Disponível';
+                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                    }
+                }
+
+                solicitacoes = solicitacoes.filter(s => s.id !== id);
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                renderizarSolicitacoes();
+            }
         }
 
         renderizarSolicitacoes();
@@ -191,9 +193,6 @@
         localStorage.removeItem('username');
         window.location.href = 'index.html';
     }
-
-    window.atualizarSolicitacao = atualizarSolicitacao;
-    window.deletarSolicitacao = deletarSolicitacao;
 </script>
 
 </body>
