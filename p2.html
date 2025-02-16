@@ -5,6 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solicitações - Sistema</title>
     <link rel="stylesheet" href="p5.css">
+    <style>
+        .btn-atualizar {
+            background-color: #28a745; /* Verde para destacar */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            border-radius: 5px;
+        }
+        .btn-atualizar:hover {
+            background-color: #218838;
+        }
+    </style>
 </head>
 <body>
 
@@ -22,7 +36,6 @@
 <main>
     <h1>Gerenciamento de Solicitações</h1>
 
-    <!-- Formulário de nova solicitação (somente para solicitante) -->
     <section class="nova-solicitacao" id="solicitacaoSection">
         <h2>Nova Solicitação</h2>
         <form id="solicitacaoForm">
@@ -69,22 +82,14 @@
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
 
-        // Ajusta a visibilidade do formulário de solicitação
-        if (username !== 'solicitante') {
-            document.getElementById('solicitacaoSection').style.display = 'none';
-        }
-
-        // Exibir o nome do usuário
         document.getElementById('username-display').textContent = `Olá, ${username}`;
 
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
-        // Função para gerar um ID único para cada solicitação
         function gerarId() {
             return solicitacoes.length > 0 ? Math.max(...solicitacoes.map(s => s.id)) + 1 : 1;
         }
 
-        // Adicionar nova solicitação
         document.getElementById('solicitacaoForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -100,12 +105,11 @@
             solicitacoes.push(novaSolicitacao);
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
             renderizarSolicitacoes();
-            e.target.reset(); // Limpar o formulário
+            e.target.reset();
         });
 
         function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos;
+            return JSON.parse(localStorage.getItem('tecnicos')) || [];
         }
 
         function renderizarSolicitacoes() {
@@ -117,15 +121,10 @@
                         <td>${s.solicitante}</td>
                         <td>${s.equipamento}</td>
                         <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                        <td>${getTecnicoSelector(s)}</td>
+                        <td>${getStatusSelector(s)}</td>
                         <td>
-                            ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
-                        </td>
-                        <td>
-                            ${username === 'técnico' || username === 'gestor' ? getStatusSelector(s) : s.status}
-                        </td>
-                        <td>
-                            ${username === 'gestor' || username === 'técnico' ? `<button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>` : ''}
-                            ${username === 'gestor' ? `<button onclick="verificarEstoque(${s.id})" class="btn-verificar">Verificar Estoque</button>` : ''}
+                            <button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>
                             <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
                         </td>
                     </tr>
@@ -160,10 +159,10 @@
             const tecnicoSelect = document.getElementById(`tecnico-${id}`);
             const statusSelect = document.getElementById(`status-${id}`);
 
-            if (username === 'gestor' && tecnicoSelect) {
+            if (tecnicoSelect) {
                 const tecnicoId = tecnicoSelect.value;
                 if (tecnicoId) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    const tecnicos = carregarTecnicos();
                     const tecnico = tecnicos.find(t => t.id == tecnicoId);
                     if (tecnico) {
                         solicitacao.tecnicoId = tecnicoId;
@@ -175,49 +174,16 @@
             }
 
             if (statusSelect) {
-                const novoStatus = statusSelect.value;
-                solicitacao.status = novoStatus;
-
-                if (novoStatus === 'concluido' && solicitacao.tecnicoId) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
-                    if (tecnico) {
-                        tecnico.status = 'Disponível';
-                    }
-                }
+                solicitacao.status = statusSelect.value;
             }
 
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
             renderizarSolicitacoes();
             alert('Solicitação atualizada com sucesso!');
         }
 
-        function verificarEstoque(id) {
-            const solicitacao = solicitacoes.find(s => s.id === id);
-            const estoque = JSON.parse(localStorage.getItem('estoque')) || [];
-            const itemEstoque = estoque.find(e => e.equipamento === solicitacao.equipamento);
-
-            if (itemEstoque) {
-                alert('Item existe no estoque.');
-            } else {
-                alert('Nota de compra feita com sucesso!');
-            }
-        }
-
         function deletarSolicitacao(id) {
             if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
-                const solicitacao = solicitacoes.find(s => s.id === id);
-
-                if (solicitacao && solicitacao.tecnicoId) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
-                    if (tecnico) {
-                        tecnico.status = 'Disponível';
-                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                    }
-                }
-
                 solicitacoes = solicitacoes.filter(s => s.id !== id);
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 renderizarSolicitacoes();
@@ -233,9 +199,7 @@
         window.location.href = 'index.html';
     }
 
-    // Funções globais para serem chamadas no HTML
     window.atualizarSolicitacao = atualizarSolicitacao;
-    window.verificarEstoque = verificarEstoque;
     window.deletarSolicitacao = deletarSolicitacao;
 </script>
 
