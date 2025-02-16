@@ -22,6 +22,7 @@
 <main>
     <h1>Gerenciamento de Solicitações</h1>
 
+    <!-- Formulário de nova solicitação (somente para solicitante) -->
     <section class="nova-solicitacao" id="solicitacaoSection">
         <h2>Nova Solicitação</h2>
         <form id="solicitacaoForm">
@@ -67,87 +68,85 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
-        const equipamentos = JSON.parse(localStorage.getItem('equipamentos')) || [];
-        let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
-        // Inicializa a lista de solicitações se não houver nada no localStorage
-        if (!solicitacoes) {
-            solicitacoes = [];
-        }
-
+        // Ajusta a visibilidade do formulário de solicitação
         if (username !== 'solicitante') {
             document.getElementById('solicitacaoSection').style.display = 'none';
         }
 
+        // Exibir o nome do usuário
         document.getElementById('username-display').textContent = `Olá, ${username}`;
 
+        let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
+
+        // Função para gerar um ID único para cada solicitação
+        function gerarId() {
+            return solicitacoes.length > 0 ? Math.max(...solicitacoes.map(s => s.id)) + 1 : 1;
+        }
+
+        // Adicionar nova solicitação
+        document.getElementById('solicitacaoForm').addEventListener('submit', function (e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const novaSolicitacao = {
+                id: gerarId(),
+                solicitante: formData.get('solicitante'),
+                equipamento: formData.get('equipamento'),
+                prioridade: formData.get('prioridade'),
+                tecnicoId: null,
+                tecnicoNome: null,
+                status: 'em espera'
+            };
+            solicitacoes.push(novaSolicitacao);
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            renderizarSolicitacoes();
+            e.target.reset(); // Limpar o formulário
+        });
+
         function carregarTecnicos() {
-            return JSON.parse(localStorage.getItem('tecnicos')) || [];
+            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            return tecnicos.filter(t => t.status === 'Disponível');
         }
 
         function renderizarSolicitacoes() {
             const tbody = document.getElementById('solicitacoesTable');
-            tbody.innerHTML = solicitacoes.map(s => `
-                <tr>
-                    <td>${s.id}</td>
-                    <td>${s.solicitante}</td>
-                    <td>${s.equipamento}</td>
-                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-                    <td>
-                        ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
-                        ${username === 'gestor' && s.tecnicoNome ? `<button onclick="atualizarDados(${s.id})">Atualizar Dados</button>` : ''}
-                    </td>
-                    <td>
-                        ${username === 'técnico' ? getStatusSelector(s) : s.status}
-                        ${username === 'técnico' ? `<button onclick="atualizarSolicitacao(${s.id})">Atualizar Solicitação</button>` : ''}
-                    </td>
-                    <td>
-                        ${username === 'gestor' ? `<button onclick="verificarEquipamento('${s.equipamento}')">Verificar Equipamento</button>` : ''}
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = solicitacoes.map(s => {
+                return `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.solicitante}</td>
+                        <td>${s.equipamento}</td>
+                        <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                        <td>
+                            ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
+                        </td>
+                        <td>
+                            ${username === 'técnico' ? getStatusSelector(s) : s.status}
+                        </td>
+                        <td>
+                            ${username === 'gestor' ? getVerificarEstoqueButton(s) : ''}
+                            <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        // Adicionar uma nova solicitação
-        document.getElementById('solicitacaoForm').addEventListener('submit', function (event) {
-            event.preventDefault();
-            const solicitante = event.target.solicitante.value;
-            const equipamento = event.target.equipamento.value;
-            const prioridade = event.target.prioridade.value;
-
-            const novaSolicitacao = {
-                id: solicitacoes.length + 1, // Gera um ID único
-                solicitante: solicitante,
-                equipamento: equipamento,
-                prioridade: prioridade,
-                status: 'em espera',
-                tecnicoNome: null,
-                tecnicoId: null,
-            };
-
-            solicitacoes.push(novaSolicitacao);
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            renderizarSolicitacoes();
-            event.target.reset(); // Limpa o formulário após adicionar a solicitação
-        });
-
-        // Função para exibir a lista de técnicos disponíveis
         function getTecnicoSelector(solicitacao) {
-            const tecnicos = carregarTecnicos().filter(t => t.status === 'Disponível');
+            const tecnicosDisponiveis = carregarTecnicos();
             return `
-                <select id="tecnico-${solicitacao.id}">
+                <select onchange="designarTecnico(${solicitacao.id}, this.value)">
                     <option value="">Selecione um técnico</option>
-                    ${tecnicos.map(t => `
+                    ${tecnicosDisponiveis.map(t => `
                         <option value="${t.id}" ${t.id === solicitacao.tecnicoId ? 'selected' : ''}>${t.nome}</option>
                     `).join('')}
                 </select>
             `;
         }
 
-        // Função para exibir o seletor de status
         function getStatusSelector(solicitacao) {
             return `
-                <select id="status-${solicitacao.id}">
+                <select onchange="atualizarStatus(${solicitacao.id}, this.value)">
                     <option value="em espera" ${solicitacao.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
                     <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
@@ -155,50 +154,14 @@
             `;
         }
 
-        // Atualizar status da solicitação
-        function atualizarSolicitacao(id) {
-            const status = document.getElementById(`status-${id}`).value;
-            let solicitacao = solicitacoes.find(s => s.id === id);
-
-            if (solicitacao) {
-                solicitacao.status = status;
-
-                if (status === 'concluido') {
-                    alert('Equipamento entregue com sucesso!');
-                    liberarTecnico(solicitacao.tecnicoId);
-                }
-
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
-            }
+        function getVerificarEstoqueButton(solicitacao) {
+            return `
+                <button onclick="verificarEstoque(${solicitacao.id})" class="btn-verificar">Verificar Estoque</button>
+            `;
         }
 
-        // Liberar técnico (status para 'Disponível')
-        function liberarTecnico(tecnicoId) {
-            let tecnicos = carregarTecnicos();
-            let tecnico = tecnicos.find(t => t.id == tecnicoId);
-
-            if (tecnico) {
-                tecnico.status = 'Disponível';
-                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-            }
-        }
-
-        // Verificar se o equipamento está no estoque
-        function verificarEquipamento(nomeEquipamento) {
-            const equipamentoExiste = equipamentos.some(eq => eq.nome === nomeEquipamento);
-
-            if (!equipamentoExiste) {
-                alert('Nota de compra feita com sucesso.');
-            } else {
-                alert('Equipamento disponível no estoque.');
-            }
-        }
-
-        // Atualizar dados do técnico (gestor designando técnico)
-        function atualizarDados(id) {
-            const tecnicoId = document.getElementById(`tecnico-${id}`).value;
-            let tecnicos = carregarTecnicos();
+        function designarTecnico(id, tecnicoId) {
+            let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
             let tecnico = tecnicos.find(t => t.id == tecnicoId);
             let solicitacao = solicitacoes.find(s => s.id === id);
 
@@ -210,7 +173,58 @@
 
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                alert('Técnico designado com sucesso!');
+                renderizarSolicitacoes();
+            }
+        }
+
+        function atualizarStatus(id, novoStatus) {
+            let solicitacao = solicitacoes.find(s => s.id === id);
+
+            if (solicitacao) {
+                solicitacao.status = novoStatus;
+
+                if (novoStatus === 'concluido' && solicitacao.tecnicoId) {
+                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+                    if (tecnico) {
+                        tecnico.status = 'Disponível';
+                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                    }
+                    alert('Equipamento foi entregue com sucesso!');
+                }
+
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                renderizarSolicitacoes();
+            }
+        }
+
+        function verificarEstoque(id) {
+            let solicitacao = solicitacoes.find(s => s.id === id);
+            let estoque = JSON.parse(localStorage.getItem('estoque')) || [];
+            let itemEstoque = estoque.find(e => e.equipamento === solicitacao.equipamento);
+
+            if (itemEstoque) {
+                alert('Item existe no estoque.');
+            } else {
+                alert('Nota de compra feita com sucesso!');
+            }
+        }
+
+        function deletarSolicitacao(id) {
+            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
+                let solicitacao = solicitacoes.find(s => s.id === id);
+
+                if (solicitacao && solicitacao.tecnicoId) {
+                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+                    if (tecnico) {
+                        tecnico.status = 'Disponível';
+                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                    }
+                }
+
+                solicitacoes = solicitacoes.filter(s => s.id !== id);
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 renderizarSolicitacoes();
             }
         }
