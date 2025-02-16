@@ -7,219 +7,194 @@
     <link rel="stylesheet" href="p5.css">
 </head>
 <body>
-    <nav class="menu-principal">
-        <a href="p2.html" class="active">Solicitações</a>
-        <a href="p3.html">Estoque</a>
-        <a href="p4.html">Técnicos</a>
-        <a href="p6.html">Relatório</a>
-        <div class="user-info">
-            <span id="username-display"></span>
-            <button onclick="logout()" class="logout-btn">Sair</button>
-        </div>
-    </nav>
 
-    <main>
-        <h1>Gerenciamento de Solicitações</h1>
+<nav class="menu-principal">
+    <a href="p2.html" class="solicitante">Solicitações</a>
+    <a href="p3.html" class="estoque">Estoque</a>
+    <a href="p4.html" class="tecnico">Técnicos</a>
+    <a href="p6.html" class="relatorio">Relatório</a>
+    <div class="user-info">
+        <span id="username-display"></span>
+        <button onclick="logout()" class="logout-btn">Sair</button>
+    </div>
+</nav>
 
-        <!-- Formulário de Solicitação -->
-        <section class="nova-solicitacao" id="formularioSolicitacao">
-            <h2>Nova Solicitação</h2>
-            <form id="solicitacaoForm">
-                <div class="form-group">
-                    <label>Solicitante:</label>
-                    <input type="text" name="solicitante" required>
-                </div>
-                <div class="form-group">
-                    <label>Equipamento:</label>
-                    <input type="text" name="equipamento" required>
-                </div>
-                <div class="form-group">
-                    <label>Prioridade:</label>
-                    <select name="prioridade">
-                        <option>Alta</option>
-                        <option>Média</option>
-                        <option>Baixa</option>
-                    </select>
-                </div>
-                <!-- Removido o campo de técnico, o técnico será atribuído após -->
-                <button type="submit">Enviar Solicitação</button>
-            </form>
-        </section>
+<main>
+    <h1>Gerenciamento de Solicitações</h1>
 
-        <!-- Lista de Solicitações Ativas -->
-        <section class="lista-solicitacoes">
-            <h2>Solicitações Ativas</h2>
-            <div class="filtros-status">
-                <button class="filtro-btn" onclick="filtrarPorStatus('em espera')">Em Espera</button>
-                <button class="filtro-btn" onclick="filtrarPorStatus('em andamento')">Em Andamento</button>
-                <button class="filtro-btn" onclick="filtrarPorStatus('concluido')">Concluído</button>
+    <!-- Formulário de nova solicitação (somente para solicitante) -->
+    <section class="nova-solicitacao" id="solicitacaoSection">
+        <h2>Nova Solicitação</h2>
+        <form id="solicitacaoForm">
+            <div class="form-group">
+                <label>Solicitante:</label>
+                <input type="text" name="solicitante" required>
             </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Solicitante</th>
-                        <th>Equipamento</th>
-                        <th>Prioridade</th>
-                        <th>Técnico</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="solicitacoesTable"></tbody>
-            </table>
-        </section>
-    </main>
+            <div class="form-group">
+                <label>Equipamento:</label>
+                <input type="text" name="equipamento" required>
+            </div>
+            <div class="form-group">
+                <label>Prioridade:</label>
+                <select name="prioridade">
+                    <option>Alta</option>
+                    <option>Média</option>
+                    <option>Baixa</option>
+                </select>
+            </div>
+            <button type="submit">Enviar Solicitação</button>
+        </form>
+    </section>
 
-    <script>
-        if (!localStorage.getItem('loggedIn')) {
-            window.location.href = 'p1.html';
+    <section class="lista-solicitacoes">
+        <h2>Solicitações Ativas</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>Solicitante</th>
+                    <th>Equipamento</th>
+                    <th>Prioridade</th>
+                    <th>Técnico</th>
+                    <th>Status</th>
+                    <th>Ações</th>
+                </tr>
+            </thead>
+            <tbody id="solicitacoesTable"></tbody>
+        </table>
+    </section>
+</main>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const username = localStorage.getItem('username');
+
+        // Ajusta a visibilidade do formulário de solicitação
+        if (username !== 'solicitante') {
+            document.getElementById('solicitacaoSection').style.display = 'none';
         }
 
-        document.getElementById('username-display').textContent = `Olá, ${localStorage.getItem('username')}`;
+        // Exibir o nome do usuário
+        document.getElementById('username-display').textContent = `Olá, ${username}`;
 
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
-        let filtroAtual = 'todos';
 
-        // Verifica o tipo de usuário logado e exibe o formulário apenas para solicitantes
-        const tipoUsuario = localStorage.getItem('tipoUsuario'); // Supondo que 'tipoUsuario' seja a chave que armazena o tipo de usuário
-
-        if (tipoUsuario === 'solicitante') {
-            document.querySelector('#formularioSolicitacao').style.display = 'block';  // Exibe o formulário para solicitantes
-        } else {
-            document.querySelector('#formularioSolicitacao').style.display = 'none';  // Oculta o formulário para outros tipos de usuário
+        // Função para gerar um ID único para cada solicitação
+        function gerarId() {
+            return solicitacoes.length > 0 ? Math.max(...solicitacoes.map(s => s.id)) + 1 : 1;
         }
 
-        // Carregar técnicos no select (apenas para a atribuição de técnico nas solicitações)
-        function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            const tecnicoSelects = document.querySelectorAll('.tecnico-select');  // Seletores para selecionar técnico nas solicitações
-            tecnicoSelects.forEach(select => {
-                select.innerHTML = '<option value="">Selecione um técnico</option>' +
-                    tecnicos.filter(t => t.status === 'Disponível').map(t => `
-                        <option value="${t.id}">${t.nome} - ${t.especialidade.join(', ')}</option>
-                    `).join('');
-            });
-        }
-
-        // Ao enviar o formulário, cria a nova solicitação e armazena no localStorage
-        document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
+        // Adicionar nova solicitação
+        document.getElementById('solicitacaoForm').addEventListener('submit', function (e) {
             e.preventDefault();
             const formData = new FormData(e.target);
             const novaSolicitacao = {
-                id: Date.now(),
+                id: gerarId(),
                 solicitante: formData.get('solicitante'),
                 equipamento: formData.get('equipamento'),
                 prioridade: formData.get('prioridade'),
-                tecnicoId: null,  // Não atribui técnico no formulário, o técnico será atribuído depois
-                tecnicoNome: '',
-                status: 'em espera',
-                dataRegistro: new Date().toLocaleDateString()
+                tecnicoId: null,
+                tecnicoNome: null,
+                status: 'em espera'
             };
-
             solicitacoes.push(novaSolicitacao);
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
             renderizarSolicitacoes();
-            e.target.reset();
+            e.target.reset(); // Limpar o formulário
         });
 
-        // Função para atribuir o técnico à solicitação e atualizar o status
-        function atualizarStatus(id, novoStatus, tecnicoId = null) {
-            solicitacoes = solicitacoes.map(s => {
-                if (s.id === id) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    if (novoStatus === 'concluido' && s.tecnicoId) {
-                        const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
-                        if (tecnico) {
-                            tecnico.status = 'Disponível';
-                            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                        }
-                    }
-
-                    // Se o técnico for atribuído, faz isso aqui
-                    if (tecnicoId) {
-                        const tecnico = tecnicos.find(t => t.id == tecnicoId);
-                        if (tecnico) {
-                            tecnico.status = 'Ocupado';
-                            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                        }
-                    }
-
-                    return { ...s, status: novoStatus, tecnicoId, tecnicoNome: tecnicoId ? tecnicos.find(t => t.id == tecnicoId).nome : s.tecnicoNome };
-                }
-                return s;
-            });
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            renderizarSolicitacoes();
-            carregarTecnicos();
-        }
-
-        function filtrarPorStatus(status) {
-            filtroAtual = status;
-            document.querySelectorAll('.filtro-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.textContent.toLowerCase().includes(status)) {
-                    btn.classList.add('active');
-                }
-            });
-            renderizarSolicitacoes();
+        function carregarTecnicos() {
+            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            return tecnicos;
         }
 
         function renderizarSolicitacoes() {
             const tbody = document.getElementById('solicitacoesTable');
-            let solicitacoesFiltradas = solicitacoes;
-
-            if (filtroAtual !== 'todos') {
-                solicitacoesFiltradas = solicitacoes.filter(s => s.status === filtroAtual);
-            }
-
-            tbody.innerHTML = solicitacoesFiltradas.map(s => `
-                <tr class="status-${s.status.replace(' ', '-')}"">
-                    <td>${s.id}</td>
-                    <td>${s.solicitante}</td>
-                    <td>${s.equipamento}</td>
-                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-                    <td>
-                        <!-- Atribuindo técnico via select -->
-                        <select onchange="atualizarStatus(${s.id}, 'em andamento', this.value)" class="tecnico-select">
-                            <option value="">Selecione um técnico</option>
-                            <!-- Lista de técnicos disponíveis -->
-                        </select>
-                    </td>
-                    <td>
-                        <select onchange="atualizarStatus(${s.id}, this.value)" class="status-select">
-                            <option value="em espera" ${s.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
-                            <option value="em andamento" ${s.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
-                            <option value="concluido" ${s.status === 'concluido' ? 'selected' : ''}>Concluído</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
-                    </td>
-                </tr>
-            `).join('');
+            tbody.innerHTML = solicitacoes.map(s => {
+                return `
+                    <tr>
+                        <td>${s.id}</td>
+                        <td>${s.solicitante}</td>
+                        <td>${s.equipamento}</td>
+                        <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                        <td>
+                            ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
+                        </td>
+                        <td>
+                            ${username === 'técnico' || username === 'gestor' ? getStatusSelector(s) : s.status}
+                        </td>
+                        <td>
+                            ${username === 'gestor' || username === 'técnico' ? `<button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>` : ''}
+                            ${username === 'gestor' ? `<button onclick="verificarEstoque(${s.id})" class="btn-verificar">Verificar Estoque</button>` : ''}
+                            <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
         }
 
-        function deletarSolicitacao(id) {
-            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
-                const solicitacao = solicitacoes.find(s => s.id === id);
-                if (solicitacao && solicitacao.tecnicoId) {
+        function getTecnicoSelector(solicitacao) {
+            const tecnicosDisponiveis = carregarTecnicos();
+            return `
+                <select id="tecnico-${solicitacao.id}">
+                    <option value="">Selecione um técnico</option>
+                    ${tecnicosDisponiveis.map(t => `
+                        <option value="${t.id}" ${t.id === solicitacao.tecnicoId ? 'selected' : ''}>${t.nome}</option>
+                    `).join('')}
+                </select>
+            `;
+        }
+
+        function getStatusSelector(solicitacao) {
+            return `
+                <select id="status-${solicitacao.id}">
+                    <option value="em espera" ${solicitacao.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
+                    <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                    <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                </select>
+            `;
+        }
+
+        function atualizarSolicitacao(id) {
+            const solicitacao = solicitacoes.find(s => s.id === id);
+            const tecnicoSelect = document.getElementById(`tecnico-${id}`);
+            const statusSelect = document.getElementById(`status-${id}`);
+
+            if (username === 'gestor' && tecnicoSelect) {
+                const tecnicoId = tecnicoSelect.value;
+                if (tecnicoId) {
                     const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+                    const tecnico = tecnicos.find(t => t.id == tecnicoId);
                     if (tecnico) {
-                        tecnico.status = 'Disponível';
-                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                        solicitacao.tecnicoId = tecnicoId;
+                        solicitacao.tecnicoNome = tecnico.nome;
+                        solicitacao.status = 'em andamento';
+                        tecnico.status = 'Ocupado';
                     }
                 }
-                solicitacoes = solicitacoes.filter(s => s.id !== id);
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
             }
+
+            if (statusSelect) {
+                solicitacao.status = statusSelect.value;
+            }
+
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            renderizarSolicitacoes();
         }
 
-        // Inicialização
-        carregarTecnicos();
         renderizarSolicitacoes();
-    </script>
+    });
+
+    function logout() {
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html';
+    }
+
+    window.atualizarSolicitacao = atualizarSolicitacao;
+    window.deletarSolicitacao = deletarSolicitacao;
+</script>
+
 </body>
 </html>
