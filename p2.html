@@ -22,30 +22,6 @@
 <main>
     <h1>Gerenciamento de Solicitações</h1>
 
-    <!-- Formulário de nova solicitação (somente para solicitante) -->
-    <section class="nova-solicitacao" id="solicitacaoSection">
-        <h2>Nova Solicitação</h2>
-        <form id="solicitacaoForm">
-            <div class="form-group">
-                <label>Solicitante:</label>
-                <input type="text" name="solicitante" required>
-            </div>
-            <div class="form-group">
-                <label>Equipamento:</label>
-                <input type="text" name="equipamento" required>
-            </div>
-            <div class="form-group">
-                <label>Prioridade:</label>
-                <select name="prioridade">
-                    <option>Alta</option>
-                    <option>Média</option>
-                    <option>Baixa</option>
-                </select>
-            </div>
-            <button type="submit">Enviar Solicitação</button>
-        </form>
-    </section>
-
     <section class="lista-solicitacoes">
         <h2>Solicitações Ativas</h2>
         <table>
@@ -68,20 +44,12 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
-
-        // Ajusta a visibilidade do formulário de solicitação
-        if (username !== 'solicitante') {
-            document.getElementById('solicitacaoSection').style.display = 'none';
-        }
-
-        // Exibir o nome do usuário
         document.getElementById('username-display').textContent = `Olá, ${username}`;
 
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
         function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos.filter(t => t.status === 'Disponível');
+            return JSON.parse(localStorage.getItem('tecnicos')) || [];
         }
 
         function renderizarSolicitacoes() {
@@ -108,7 +76,7 @@
         }
 
         function getTecnicoSelector(solicitacao) {
-            const tecnicosDisponiveis = carregarTecnicos();
+            const tecnicosDisponiveis = carregarTecnicos().filter(t => t.status === 'Disponível');
             return `
                 <select onchange="designarTecnico(${solicitacao.id}, this.value)">
                     <option value="">Selecione um técnico</option>
@@ -130,7 +98,7 @@
         }
 
         function designarTecnico(id, tecnicoId) {
-            let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            let tecnicos = carregarTecnicos();
             let tecnico = tecnicos.find(t => t.id == tecnicoId);
             let solicitacao = solicitacoes.find(s => s.id === id);
 
@@ -142,7 +110,9 @@
 
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                renderizarSolicitacoes();
+
+                // Atualiza a página para refletir a alteração imediatamente
+                location.reload();
             }
         }
 
@@ -152,8 +122,8 @@
             if (solicitacao) {
                 solicitacao.status = novoStatus;
 
-                if (novoStatus === 'concluido' && solicitacao.tecnicoId) {
-                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                if (novoStatus === 'concluido') {
+                    let tecnicos = carregarTecnicos();
                     let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
                     if (tecnico) {
                         tecnico.status = 'Disponível';
@@ -162,7 +132,9 @@
                 }
 
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
+
+                // Atualiza a página para garantir que o status salvo seja exibido
+                location.reload();
             }
         }
 
@@ -171,7 +143,7 @@
                 let solicitacao = solicitacoes.find(s => s.id === id);
 
                 if (solicitacao && solicitacao.tecnicoId) {
-                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    let tecnicos = carregarTecnicos();
                     let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
                     if (tecnico) {
                         tecnico.status = 'Disponível';
@@ -181,7 +153,9 @@
 
                 solicitacoes = solicitacoes.filter(s => s.id !== id);
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
+
+                // Atualiza a página para refletir a exclusão
+                location.reload();
             }
         }
 
