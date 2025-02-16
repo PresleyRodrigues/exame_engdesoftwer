@@ -17,32 +17,7 @@
             <button onclick="logout()" class="logout-btn">Sair</button>
         </div>
     </nav>
- <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const username = localStorage.getItem('username');
-            const menuItems = document.querySelectorAll('.menu-principal a');
-
-            menuItems.forEach(item => item.style.display = 'none');
-
-            if (username === 'admin') {
-                menuItems.forEach(item => item.style.display = 'block');
-            } else if (username === 'gestor') {
-                document.querySelector('.solicitante').style.display = 'block';
-                document.querySelector('.estoque').style.display = 'block';
-            } else if (username === 'técnico') {
-                document.querySelector('.solicitante').style.display = 'block';
-                document.querySelector('.tecnico').style.display = 'block';
-            } else if (username === 'solicitante') {
-                document.querySelector('.solicitante').style.display = 'block';
-            }
-        });
-
-        function logout() {
-            localStorage.removeItem('loggedIn');
-            localStorage.removeItem('username');
-            window.location.href = 'index.html';
-        }
-    </script>
+ 
     <main>
         <h1>Gerenciamento de Solicitações</h1>
         
@@ -65,12 +40,7 @@
                         <option>Baixa</option>
                     </select>
                 </div>
-                <div class="form-group">
-                    <label>Técnico Responsável:</label>
-                    <select name="tecnico" id="tecnicoSelect">
-                        <option value="">Selecione um técnico</option>
-                    </select>
-                </div>
+              
                 <button type="submit">Enviar Solicitação</button>
             </form>
         </section>
