@@ -70,6 +70,11 @@
         const equipamentos = JSON.parse(localStorage.getItem('equipamentos')) || [];
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
+        // Inicializa a lista de solicitações se não houver nada no localStorage
+        if (!solicitacoes) {
+            solicitacoes = [];
+        }
+
         if (username !== 'solicitante') {
             document.getElementById('solicitacaoSection').style.display = 'none';
         }
@@ -103,6 +108,30 @@
             `).join('');
         }
 
+        // Adicionar uma nova solicitação
+        document.getElementById('solicitacaoForm').addEventListener('submit', function (event) {
+            event.preventDefault();
+            const solicitante = event.target.solicitante.value;
+            const equipamento = event.target.equipamento.value;
+            const prioridade = event.target.prioridade.value;
+
+            const novaSolicitacao = {
+                id: solicitacoes.length + 1, // Gera um ID único
+                solicitante: solicitante,
+                equipamento: equipamento,
+                prioridade: prioridade,
+                status: 'em espera',
+                tecnicoNome: null,
+                tecnicoId: null,
+            };
+
+            solicitacoes.push(novaSolicitacao);
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            renderizarSolicitacoes();
+            event.target.reset(); // Limpa o formulário após adicionar a solicitação
+        });
+
+        // Função para exibir a lista de técnicos disponíveis
         function getTecnicoSelector(solicitacao) {
             const tecnicos = carregarTecnicos().filter(t => t.status === 'Disponível');
             return `
@@ -115,6 +144,7 @@
             `;
         }
 
+        // Função para exibir o seletor de status
         function getStatusSelector(solicitacao) {
             return `
                 <select id="status-${solicitacao.id}">
@@ -125,6 +155,7 @@
             `;
         }
 
+        // Atualizar status da solicitação
         function atualizarSolicitacao(id) {
             const status = document.getElementById(`status-${id}`).value;
             let solicitacao = solicitacoes.find(s => s.id === id);
@@ -142,6 +173,7 @@
             }
         }
 
+        // Liberar técnico (status para 'Disponível')
         function liberarTecnico(tecnicoId) {
             let tecnicos = carregarTecnicos();
             let tecnico = tecnicos.find(t => t.id == tecnicoId);
@@ -152,6 +184,7 @@
             }
         }
 
+        // Verificar se o equipamento está no estoque
         function verificarEquipamento(nomeEquipamento) {
             const equipamentoExiste = equipamentos.some(eq => eq.nome === nomeEquipamento);
 
@@ -162,6 +195,7 @@
             }
         }
 
+        // Atualizar dados do técnico (gestor designando técnico)
         function atualizarDados(id) {
             const tecnicoId = document.getElementById(`tecnico-${id}`).value;
             let tecnicos = carregarTecnicos();
