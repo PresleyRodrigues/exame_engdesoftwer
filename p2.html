@@ -82,6 +82,11 @@
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
 
+        // Esconder o formulário para técnicos e gestores
+        if (username !== 'solicitante') {
+            document.getElementById('solicitacaoSection').style.display = 'none';
+        }
+
         document.getElementById('username-display').textContent = `Olá, ${username}`;
 
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
@@ -114,22 +119,20 @@
 
         function renderizarSolicitacoes() {
             const tbody = document.getElementById('solicitacoesTable');
-            tbody.innerHTML = solicitacoes.map(s => {
-                return `
-                    <tr>
-                        <td>${s.id}</td>
-                        <td>${s.solicitante}</td>
-                        <td>${s.equipamento}</td>
-                        <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-                        <td>${getTecnicoSelector(s)}</td>
-                        <td>${getStatusSelector(s)}</td>
-                        <td>
-                            <button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>
-                            <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            tbody.innerHTML = solicitacoes.map(s => `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.solicitante}</td>
+                    <td>${s.equipamento}</td>
+                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                    <td>${getTecnicoSelector(s)}</td>
+                    <td>${getStatusSelector(s)}</td>
+                    <td>
+                        <button onclick="atualizarSolicitacao(${s.id})" class="btn-atualizar">Atualizar</button>
+                        <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
         }
 
         function getTecnicoSelector(solicitacao) {
@@ -155,21 +158,18 @@
         }
 
         function atualizarSolicitacao(id) {
-            const solicitacao = solicitacoes.find(s => s.id === id);
-            const tecnicoSelect = document.getElementById(`tecnico-${id}`);
-            const statusSelect = document.getElementById(`status-${id}`);
+            let solicitacao = solicitacoes.find(s => s.id === id);
+            let tecnicoSelect = document.getElementById(`tecnico-${id}`);
+            let statusSelect = document.getElementById(`status-${id}`);
 
             if (tecnicoSelect) {
-                const tecnicoId = tecnicoSelect.value;
-                if (tecnicoId) {
-                    const tecnicos = carregarTecnicos();
-                    const tecnico = tecnicos.find(t => t.id == tecnicoId);
-                    if (tecnico) {
-                        solicitacao.tecnicoId = tecnicoId;
-                        solicitacao.tecnicoNome = tecnico.nome;
-                        solicitacao.status = 'em andamento';
-                        tecnico.status = 'Ocupado';
-                    }
+                let tecnicoId = tecnicoSelect.value;
+                let tecnicos = carregarTecnicos();
+                let tecnico = tecnicos.find(t => t.id == tecnicoId);
+                if (tecnico) {
+                    solicitacao.tecnicoId = tecnicoId;
+                    solicitacao.tecnicoNome = tecnico.nome;
+                    solicitacao.status = 'em andamento';
                 }
             }
 
@@ -179,15 +179,12 @@
 
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
             renderizarSolicitacoes();
-            alert('Solicitação atualizada com sucesso!');
         }
 
         function deletarSolicitacao(id) {
-            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
-                solicitacoes = solicitacoes.filter(s => s.id !== id);
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
-            }
+            solicitacoes = solicitacoes.filter(s => s.id !== id);
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            renderizarSolicitacoes();
         }
 
         renderizarSolicitacoes();
