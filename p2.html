@@ -22,7 +22,6 @@
 <main>
     <h1>Gerenciamento de Solicitações</h1>
 
-    <!-- Formulário de nova solicitação (somente para solicitante) -->
     <section class="nova-solicitacao" id="solicitacaoSection">
         <h2>Nova Solicitação</h2>
         <form id="solicitacaoForm">
@@ -68,52 +67,48 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
+        const equipamentos = JSON.parse(localStorage.getItem('equipamentos')) || [];
+        let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
 
-        // Ajusta a visibilidade do formulário de solicitação
         if (username !== 'solicitante') {
             document.getElementById('solicitacaoSection').style.display = 'none';
         }
 
-        // Exibir o nome do usuário
         document.getElementById('username-display').textContent = `Olá, ${username}`;
 
-        let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
-
         function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos.filter(t => t.status === 'Disponível');
+            return JSON.parse(localStorage.getItem('tecnicos')) || [];
         }
 
         function renderizarSolicitacoes() {
             const tbody = document.getElementById('solicitacoesTable');
-            tbody.innerHTML = solicitacoes.map(s => {
-                return `
-                    <tr>
-                        <td>${s.id}</td>
-                        <td>${s.solicitante}</td>
-                        <td>${s.equipamento}</td>
-                        <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-                        <td>
-                            ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
-                        </td>
-                        <td>
-                            ${username === 'técnico' ? getStatusSelector(s) : s.status}
-                        </td>
-                        <td>
-                            ${username === 'gestor' ? getVerificarEstoqueButton(s) : ''}
-                            <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
-                        </td>
-                    </tr>
-                `;
-            }).join('');
+            tbody.innerHTML = solicitacoes.map(s => `
+                <tr>
+                    <td>${s.id}</td>
+                    <td>${s.solicitante}</td>
+                    <td>${s.equipamento}</td>
+                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                    <td>
+                        ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
+                        ${username === 'gestor' && s.tecnicoNome ? `<button onclick="atualizarDados(${s.id})">Atualizar Dados</button>` : ''}
+                    </td>
+                    <td>
+                        ${username === 'técnico' ? getStatusSelector(s) : s.status}
+                        ${username === 'técnico' ? `<button onclick="atualizarSolicitacao(${s.id})">Atualizar Solicitação</button>` : ''}
+                    </td>
+                    <td>
+                        ${username === 'gestor' ? `<button onclick="verificarEquipamento('${s.equipamento}')">Verificar Equipamento</button>` : ''}
+                    </td>
+                </tr>
+            `).join('');
         }
 
         function getTecnicoSelector(solicitacao) {
-            const tecnicosDisponiveis = carregarTecnicos();
+            const tecnicos = carregarTecnicos().filter(t => t.status === 'Disponível');
             return `
-                <select onchange="designarTecnico(${solicitacao.id}, this.value)">
+                <select id="tecnico-${solicitacao.id}">
                     <option value="">Selecione um técnico</option>
-                    ${tecnicosDisponiveis.map(t => `
+                    ${tecnicos.map(t => `
                         <option value="${t.id}" ${t.id === solicitacao.tecnicoId ? 'selected' : ''}>${t.nome}</option>
                     `).join('')}
                 </select>
@@ -122,7 +117,7 @@
 
         function getStatusSelector(solicitacao) {
             return `
-                <select onchange="atualizarStatus(${solicitacao.id}, this.value)">
+                <select id="status-${solicitacao.id}">
                     <option value="em espera" ${solicitacao.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
                     <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
@@ -130,14 +125,46 @@
             `;
         }
 
-        function getVerificarEstoqueButton(solicitacao) {
-            return `
-                <button onclick="verificarEstoque(${solicitacao.id})" class="btn-verificar">Verificar Estoque</button>
-            `;
+        function atualizarSolicitacao(id) {
+            const status = document.getElementById(`status-${id}`).value;
+            let solicitacao = solicitacoes.find(s => s.id === id);
+
+            if (solicitacao) {
+                solicitacao.status = status;
+
+                if (status === 'concluido') {
+                    alert('Equipamento entregue com sucesso!');
+                    liberarTecnico(solicitacao.tecnicoId);
+                }
+
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                renderizarSolicitacoes();
+            }
         }
 
-        function designarTecnico(id, tecnicoId) {
-            let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+        function liberarTecnico(tecnicoId) {
+            let tecnicos = carregarTecnicos();
+            let tecnico = tecnicos.find(t => t.id == tecnicoId);
+
+            if (tecnico) {
+                tecnico.status = 'Disponível';
+                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            }
+        }
+
+        function verificarEquipamento(nomeEquipamento) {
+            const equipamentoExiste = equipamentos.some(eq => eq.nome === nomeEquipamento);
+
+            if (!equipamentoExiste) {
+                alert('Nota de compra feita com sucesso.');
+            } else {
+                alert('Equipamento disponível no estoque.');
+            }
+        }
+
+        function atualizarDados(id) {
+            const tecnicoId = document.getElementById(`tecnico-${id}`).value;
+            let tecnicos = carregarTecnicos();
             let tecnico = tecnicos.find(t => t.id == tecnicoId);
             let solicitacao = solicitacoes.find(s => s.id === id);
 
@@ -149,58 +176,7 @@
 
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                renderizarSolicitacoes();
-            }
-        }
-
-        function atualizarStatus(id, novoStatus) {
-            let solicitacao = solicitacoes.find(s => s.id === id);
-
-            if (solicitacao) {
-                solicitacao.status = novoStatus;
-
-                if (novoStatus === 'concluido' && solicitacao.tecnicoId) {
-                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
-                    if (tecnico) {
-                        tecnico.status = 'Disponível';
-                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                    }
-                    alert('Equipamento foi entregue com sucesso!');
-                }
-
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
-            }
-        }
-
-        function verificarEstoque(id) {
-            let solicitacao = solicitacoes.find(s => s.id === id);
-            let estoque = JSON.parse(localStorage.getItem('estoque')) || [];
-            let itemEstoque = estoque.find(e => e.equipamento === solicitacao.equipamento);
-
-            if (itemEstoque) {
-                alert('Item existe no estoque.');
-            } else {
-                alert('Nota de compra feita com sucesso!');
-            }
-        }
-
-        function deletarSolicitacao(id) {
-            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
-                let solicitacao = solicitacoes.find(s => s.id === id);
-
-                if (solicitacao && solicitacao.tecnicoId) {
-                    let tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    let tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
-                    if (tecnico) {
-                        tecnico.status = 'Disponível';
-                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                    }
-                }
-
-                solicitacoes = solicitacoes.filter(s => s.id !== id);
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                alert('Técnico designado com sucesso!');
                 renderizarSolicitacoes();
             }
         }
