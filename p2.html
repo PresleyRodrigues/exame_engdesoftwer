@@ -98,4 +98,128 @@
                 `).join('');
         }
 
-        // Verifica se o usuário
+        // Verifica se o usuário logado é solicitante e exibe o formulário de cadastro de solicitação
+        const tipoUsuario = localStorage.getItem('tipoUsuario'); // Assume que 'tipoUsuario' é a chave que define o tipo de usuário
+        
+        // Sempre exibir o formulário de solicitação para solicitantes
+        const secaoSolicitacao = document.querySelector('.nova-solicitacao');
+        if (tipoUsuario === 'solicitante') {
+            secaoSolicitacao.style.display = 'block';
+        } else {
+            secaoSolicitacao.style.display = 'block'; // Garante que o formulário não será oculto para solicitantes
+        }
+
+        document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const tecnicoId = formData.get('tecnico');
+            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            const tecnico = tecnicos.find(t => t.id == tecnicoId);
+
+            const novaSolicitacao = {
+                id: Date.now(),
+                solicitante: formData.get('solicitante'),
+                equipamento: formData.get('equipamento'),
+                prioridade: formData.get('prioridade'),
+                tecnicoId: tecnicoId,
+                tecnicoNome: tecnico ? tecnico.nome : '',
+                status: tecnicoId ? 'em andamento' : 'em espera',
+                dataRegistro: new Date().toLocaleDateString()
+            };
+
+            if (tecnico) {
+                tecnico.status = 'Ocupado';
+                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            }
+
+            solicitacoes.push(novaSolicitacao);
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            renderizarSolicitacoes();
+            e.target.reset();
+            carregarTecnicos();
+        });
+
+        function atualizarStatus(id, novoStatus) {
+            solicitacoes = solicitacoes.map(s => {
+                if (s.id === id) {
+                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    if (novoStatus === 'concluido' && s.tecnicoId) {
+                        const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
+                        if (tecnico) {
+                            tecnico.status = 'Disponível';
+                            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                        }
+                    }
+                    return { ...s, status: novoStatus };
+                }
+                return s;
+            });
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            renderizarSolicitacoes();
+            carregarTecnicos();
+        }
+
+        function filtrarPorStatus(status) {
+            filtroAtual = status;
+            document.querySelectorAll('.filtro-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(status)) {
+                    btn.classList.add('active');
+                }
+            });
+            renderizarSolicitacoes();
+        }
+
+        function renderizarSolicitacoes() {
+            const tbody = document.getElementById('solicitacoesTable');
+            let solicitacoesFiltradas = solicitacoes;
+            
+            if (filtroAtual !== 'todos') {
+                solicitacoesFiltradas = solicitacoes.filter(s => s.status === filtroAtual);
+            }
+
+            tbody.innerHTML = solicitacoesFiltradas.map(s => `
+                <tr class="status-${s.status.replace(' ', '-')}">
+                    <td>${s.id}</td>
+                    <td>${s.solicitante}</td>
+                    <td>${s.equipamento}</td>
+                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+                    <td>${s.tecnicoNome || 'Não atribuído'}</td>
+                    <td>
+                        <select onchange="atualizarStatus(${s.id}, this.value)" class="status-select">
+                            <option value="em espera" ${s.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
+                            <option value="em andamento" ${s.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                            <option value="concluido" ${s.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function deletarSolicitacao(id) {
+            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
+                const solicitacao = solicitacoes.find(s => s.id === id);
+                if (solicitacao && solicitacao.tecnicoId) {
+                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+                    if (tecnico) {
+                        tecnico.status = 'Disponível';
+                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+                    }
+                }
+                solicitacoes = solicitacoes.filter(s => s.id !== id);
+                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+                renderizarSolicitacoes();
+                carregarTecnicos();
+            }
+        }
+
+        carregarTecnicos();
+        renderizarSolicitacoes();
+    </script>
+
+</body>
+</html>
