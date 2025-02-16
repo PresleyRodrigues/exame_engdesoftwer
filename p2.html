@@ -105,7 +105,7 @@
 
         function carregarTecnicos() {
             const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos.filter(t => t.status === 'Disponível');
+            return tecnicos;
         }
 
         function renderizarSolicitacoes() {
@@ -124,7 +124,7 @@
                             ${username === 'técnico' ? getStatusSelector(s) : s.status}
                         </td>
                         <td>
-                            ${username === 'gestor' ? getVerificarEstoqueButton(s) : ''}
+                            ${username === 'gestor' ? `<button onclick="verificarEstoque(${s.id})" class="btn-verificar">Verificar Estoque</button>` : ''}
                             <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
                         </td>
                     </tr>
@@ -151,12 +151,6 @@
                     <option value="em andamento" ${solicitacao.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
                     <option value="concluido" ${solicitacao.status === 'concluido' ? 'selected' : ''}>Concluído</option>
                 </select>
-            `;
-        }
-
-        function getVerificarEstoqueButton(solicitacao) {
-            return `
-                <button onclick="verificarEstoque(${solicitacao.id})" class="btn-verificar">Verificar Estoque</button>
             `;
         }
 
@@ -237,6 +231,12 @@
         localStorage.removeItem('username');
         window.location.href = 'index.html';
     }
+
+    // Funções globais para serem chamadas no HTML
+    window.designarTecnico = designarTecnico;
+    window.atualizarStatus = atualizarStatus;
+    window.verificarEstoque = verificarEstoque;
+    window.deletarSolicitacao = deletarSolicitacao;
 </script>
 
 </body>
