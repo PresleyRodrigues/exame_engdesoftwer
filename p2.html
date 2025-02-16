@@ -11,7 +11,7 @@
         <a href="p2.html" class="active">Solicitações</a>
         <a href="p3.html">Estoque</a>
         <a href="p4.html">Técnicos</a>
-        <a href="p6.html">Relatorio</a>
+        <a href="p6.html">Relatório</a>
         <div class="user-info">
             <span id="username-display"></span>
             <button onclick="logout()" class="logout-btn">Sair</button>
@@ -21,6 +21,7 @@
     <main>
         <h1>Gerenciamento de Solicitações</h1>
 
+        <!-- Formulário de Solicitação -->
         <section class="nova-solicitacao" id="formularioSolicitacao">
             <h2>Nova Solicitação</h2>
             <form id="solicitacaoForm">
@@ -40,11 +41,12 @@
                         <option>Baixa</option>
                     </select>
                 </div>
-                <!-- Removido o campo de técnico, conforme solicitado -->
+                <!-- Removido o campo de técnico, o técnico será atribuído após -->
                 <button type="submit">Enviar Solicitação</button>
             </form>
         </section>
 
+        <!-- Lista de Solicitações Ativas -->
         <section class="lista-solicitacoes">
             <h2>Solicitações Ativas</h2>
             <div class="filtros-status">
@@ -100,6 +102,7 @@
             });
         }
 
+        // Ao enviar o formulário, cria a nova solicitação e armazena no localStorage
         document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -108,7 +111,7 @@
                 solicitante: formData.get('solicitante'),
                 equipamento: formData.get('equipamento'),
                 prioridade: formData.get('prioridade'),
-                tecnicoId: null,  // Não atribui técnico no formulário
+                tecnicoId: null,  // Não atribui técnico no formulário, o técnico será atribuído depois
                 tecnicoNome: '',
                 status: 'em espera',
                 dataRegistro: new Date().toLocaleDateString()
@@ -120,7 +123,7 @@
             e.target.reset();
         });
 
-        // Atualizar status da solicitação e atribuição de técnico
+        // Função para atribuir o técnico à solicitação e atualizar o status
         function atualizarStatus(id, novoStatus, tecnicoId = null) {
             solicitacoes = solicitacoes.map(s => {
                 if (s.id === id) {
@@ -177,9 +180,10 @@
                     <td>${s.equipamento}</td>
                     <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
                     <td>
+                        <!-- Atribuindo técnico via select -->
                         <select onchange="atualizarStatus(${s.id}, 'em andamento', this.value)" class="tecnico-select">
                             <option value="">Selecione um técnico</option>
-                            <!-- Aqui os técnicos podem ser atribuídos -->
+                            <!-- Lista de técnicos disponíveis -->
                         </select>
                     </td>
                     <td>
@@ -207,17 +211,15 @@
                         localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
                     }
                 }
-
                 solicitacoes = solicitacoes.filter(s => s.id !== id);
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 renderizarSolicitacoes();
-                carregarTecnicos();
             }
         }
 
+        // Inicialização
         carregarTecnicos();
         renderizarSolicitacoes();
     </script>
-
 </body>
 </html>
