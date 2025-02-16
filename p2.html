@@ -121,7 +121,7 @@
                             ${username === 'gestor' ? getTecnicoSelector(s) : s.tecnicoNome || 'Não atribuído'}
                         </td>
                         <td>
-                            ${username === 'técnico' ? getStatusSelector(s) : s.status}
+                            ${username === 'técnico' || username === 'gestor' ? getStatusSelector(s) : s.status}
                         </td>
                         <td>
                             ${username === 'gestor' ? `<button onclick="verificarEstoque(${s.id})" class="btn-verificar">Verificar Estoque</button>` : ''}
