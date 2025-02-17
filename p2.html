@@ -290,21 +290,7 @@
         }
       }
       
-      // Configuração dos itens do menu de acordo com o tipo de usuário
-      const menuItems = document.querySelectorAll('.menu-principal a');
-      menuItems.forEach(item => item.style.display = 'none');
-      if (username === 'admin') {
-        menuItems.forEach(item => item.style.display = 'block');
-      } else if (username === 'gestor') {
-        document.querySelector('.solicitante').style.display = 'block';
-        document.querySelector('.estoque').style.display = 'block';
-      } else if (username === 'técnico') {
-        document.querySelector('.solicitante').style.display = 'block';
-        document.querySelector('.tecnico').style.display = 'block';
-      } else if (username === 'solicitante') {
-        document.querySelector('.solicitante').style.display = 'block';
-        solicitacaoSection.style.display = 'block';
-      }
+     
       
       // Inicializa a renderização das solicitações
       renderizarSolicitacoes();
