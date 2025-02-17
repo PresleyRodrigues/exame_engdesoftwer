@@ -8,10 +8,10 @@
 </head>
 <body>
     <nav class="menu-principal">
-        <a href="p2.html" class="active">Solicitações</a>
-        <a href="p3.html">Estoque</a>
-        <a href="p4.html">Técnicos</a>
-        <a href="p6.html">Relatorio</a>
+        <a href="p2.html" class="active solicitante">Solicitações</a>
+        <a href="p3.html" class="estoque">Estoque</a>
+        <a href="p4.html" class="tecnico">Técnicos</a>
+        <a href="p6.html" class="relatorio">Relatorio</a>
         <div class="user-info">
             <span id="username-display"></span>
             <button onclick="logout()" class="logout-btn">Sair</button>
@@ -21,7 +21,8 @@
     <main>
         <h1>Gerenciamento de Solicitações</h1>
         
-        <section class="nova-solicitacao">
+        <!-- Formulário de nova solicitação (apenas para o usuário "solicitante") -->
+        <section class="nova-solicitacao" id="solicitacaoSection">
             <h2>Nova Solicitação</h2>
             <form id="solicitacaoForm">
                 <div class="form-group">
@@ -40,7 +41,6 @@
                         <option>Baixa</option>
                     </select>
                 </div>
-              
                 <button type="submit">Enviar Solicitação</button>
             </form>
         </section>
@@ -70,64 +70,63 @@
     </main>
 
     <script>
+        // Redireciona para a página de login se o usuário não estiver logado
         if (!localStorage.getItem('loggedIn')) {
             window.location.href = 'p1.html';
         }
 
-        document.getElementById('username-display').textContent = 
-            `Olá, ${localStorage.getItem('username')}`;
+        // Exibe o nome do usuário
+        const username = localStorage.getItem('username');
+        document.getElementById('username-display').textContent = `Olá, ${username}`;
 
+        // Recupera as solicitações do localStorage (ou inicia um array vazio)
         let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
         let filtroAtual = 'todos';
 
-        // Carregar técnicos no select
-        function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            const tecnicoSelect = document.getElementById('tecnicoSelect');
-            
-            const tecnicosDisponiveis = tecnicos.filter(t => t.status === 'Disponível');
-            
-            tecnicoSelect.innerHTML = '<option value="">Selecione um técnico</option>' +
-                tecnicosDisponiveis.map(t => `
-                    <option value="${t.id}">${t.nome} - ${t.especialidade.join(', ')}</option>
-                `).join('');
+        // Referência ao formulário de solicitação (seu id foi alterado para "solicitacaoSection")
+        const solicitacaoSection = document.getElementById('solicitacaoSection');
+
+        // Apenas o usuário "solicitante" deve ver o formulário de nova solicitação
+        if (username !== 'solicitante') {
+            solicitacaoSection.style.display = 'none';
+        } else {
+            solicitacaoSection.style.display = 'block';
         }
 
+        // Função para carregar técnicos (caso seja necessário em outras partes do sistema)
+        function carregarTecnicos() {
+            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            return tecnicos.filter(t => t.status === 'Disponível');
+        }
+
+        // Tratamento do envio do formulário de nova solicitação
         document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
             e.preventDefault();
             const formData = new FormData(e.target);
-            const tecnicoId = formData.get('tecnico');
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            const tecnico = tecnicos.find(t => t.id == tecnicoId);
-
             const novaSolicitacao = {
                 id: Date.now(),
                 solicitante: formData.get('solicitante'),
                 equipamento: formData.get('equipamento'),
                 prioridade: formData.get('prioridade'),
-                tecnicoId: tecnicoId,
-                tecnicoNome: tecnico ? tecnico.nome : '',
-                status: tecnicoId ? 'em andamento' : 'em espera',
+                tecnicoId: '',         // Sem técnico designado inicialmente
+                tecnicoNome: '',
+                status: 'em espera',
                 dataRegistro: new Date().toLocaleDateString()
             };
-
-            if (tecnico) {
-                tecnico.status = 'Ocupado';
-                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-            }
 
             solicitacoes.push(novaSolicitacao);
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
             renderizarSolicitacoes();
             e.target.reset();
-            carregarTecnicos();
         });
 
+        // Atualiza o status de uma solicitação (usado no select da tabela)
         function atualizarStatus(id, novoStatus) {
             solicitacoes = solicitacoes.map(s => {
                 if (s.id === id) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+                    // Se a solicitação for concluída e houver técnico designado, libera o técnico
                     if (novoStatus === 'concluido' && s.tecnicoId) {
+                        const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
                         const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
                         if (tecnico) {
                             tecnico.status = 'Disponível';
@@ -140,9 +139,9 @@
             });
             localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
             renderizarSolicitacoes();
-            carregarTecnicos();
         }
 
+        // Filtra as solicitações por status
         function filtrarPorStatus(status) {
             filtroAtual = status;
             document.querySelectorAll('.filtro-btn').forEach(btn => {
@@ -154,14 +153,13 @@
             renderizarSolicitacoes();
         }
 
+        // Renderiza as solicitações na tabela
         function renderizarSolicitacoes() {
             const tbody = document.getElementById('solicitacoesTable');
             let solicitacoesFiltradas = solicitacoes;
-            
             if (filtroAtual !== 'todos') {
                 solicitacoesFiltradas = solicitacoes.filter(s => s.status === filtroAtual);
             }
-
             tbody.innerHTML = solicitacoesFiltradas.map(s => `
                 <tr class="status-${s.status.replace(' ', '-')}">
                     <td>${s.id}</td>
@@ -183,6 +181,7 @@
             `).join('');
         }
 
+        // Deleta uma solicitação
         function deletarSolicitacao(id) {
             if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
                 const solicitacao = solicitacoes.find(s => s.id === id);
@@ -197,34 +196,38 @@
                 solicitacoes = solicitacoes.filter(s => s.id !== id);
                 localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
                 renderizarSolicitacoes();
-                carregarTecnicos();
             }
         }
 
-        carregarTecnicos();
+        // Inicializa os dados
         renderizarSolicitacoes();
-    
-    document.addEventListener('DOMContentLoaded', function () {
-        const username = localStorage.getItem('username');
-        const menuItems = document.querySelectorAll('.menu-principal a');
-        const novaSolicitacaoSection = document.getElementById('novaSolicitacaoSection');
 
-        // Oculta todos os itens do menu
-        menuItems.forEach(item => item.style.display = 'none');
+        // Configuração dos itens do menu de acordo com o tipo de usuário
+        document.addEventListener('DOMContentLoaded', function () {
+            const menuItems = document.querySelectorAll('.menu-principal a');
+            // Oculta todos os itens do menu por padrão
+            menuItems.forEach(item => item.style.display = 'none');
 
-        if (username === 'admin') {
-            menuItems.forEach(item => item.style.display = 'block');
-        } else if (username === 'gestor') {
-            document.querySelector('.solicitante').style.display = 'block';
-            document.querySelector('.estoque').style.display = 'block';
-        } else if (username === 'técnico') {
-            document.querySelector('.solicitante').style.display = 'block';
-            document.querySelector('.tecnico').style.display = 'block';
-        } else if (username === 'solicitante') {
-            document.querySelector('.solicitante').style.display = 'block';
-            novaSolicitacaoSection.style.display = 'block'; // Exibe o formulário apenas para solicitantes
+            if (username === 'admin') {
+                menuItems.forEach(item => item.style.display = 'block');
+            } else if (username === 'gestor') {
+                document.querySelector('.solicitante').style.display = 'block';
+                document.querySelector('.estoque').style.display = 'block';
+            } else if (username === 'técnico') {
+                document.querySelector('.solicitante').style.display = 'block';
+                document.querySelector('.tecnico').style.display = 'block';
+            } else if (username === 'solicitante') {
+                document.querySelector('.solicitante').style.display = 'block';
+                solicitacaoSection.style.display = 'block';
+            }
+        });
+
+        // Função de logout
+        function logout() {
+            localStorage.removeItem('loggedIn');
+            localStorage.removeItem('username');
+            window.location.href = 'index.html';
         }
-    });
-</script>
+    </script>
 </body>
 </html>
