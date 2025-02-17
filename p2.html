@@ -1,233 +1,229 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Solicitações - Sistema</title>
-    <link rel="stylesheet" href="p5.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solicitações - Sistema</title>
+  <link rel="stylesheet" href="p5.css">
 </head>
 <body>
-    <nav class="menu-principal">
-        <a href="p2.html" class="active solicitante">Solicitações</a>
-        <a href="p3.html" class="estoque">Estoque</a>
-        <a href="p4.html" class="tecnico">Técnicos</a>
-        <a href="p6.html" class="relatorio">Relatorio</a>
-        <div class="user-info">
-            <span id="username-display"></span>
-            <button onclick="logout()" class="logout-btn">Sair</button>
+  <nav class="menu-principal">
+    <a href="p2.html" class="active solicitante">Solicitações</a>
+    <a href="p3.html" class="estoque">Estoque</a>
+    <a href="p4.html" class="tecnico">Técnicos</a>
+    <a href="p6.html" class="relatorio">Relatorio</a>
+    <div class="user-info">
+      <span id="username-display"></span>
+      <button onclick="logout()" class="logout-btn">Sair</button>
+    </div>
+  </nav>
+
+  <main>
+    <h1>Gerenciamento de Solicitações</h1>
+    
+    <!-- Formulário de nova solicitação (apenas para o usuário "solicitante") -->
+    <section class="nova-solicitacao" id="solicitacaoSection">
+      <h2>Nova Solicitação</h2>
+      <form id="solicitacaoForm">
+        <div class="form-group">
+          <label>Solicitante:</label>
+          <input type="text" name="solicitante" required>
         </div>
-    </nav>
- 
-    <main>
-        <h1>Gerenciamento de Solicitações</h1>
-        
-        <!-- Formulário de nova solicitação (apenas para o usuário "solicitante") -->
-        <section class="nova-solicitacao" id="solicitacaoSection">
-            <h2>Nova Solicitação</h2>
-            <form id="solicitacaoForm">
-                <div class="form-group">
-                    <label>Solicitante:</label>
-                    <input type="text" name="solicitante" required>
-                </div>
-                <div class="form-group">
-                    <label>Equipamento:</label>
-                    <input type="text" name="equipamento" required>
-                </div>
-                <div class="form-group">
-                    <label>Prioridade:</label>
-                    <select name="prioridade">
-                        <option>Alta</option>
-                        <option>Média</option>
-                        <option>Baixa</option>
-                    </select>
-                </div>
-                <button type="submit">Enviar Solicitação</button>
-            </form>
-        </section>
+        <div class="form-group">
+          <label>Equipamento:</label>
+          <input type="text" name="equipamento" required>
+        </div>
+        <div class="form-group">
+          <label>Prioridade:</label>
+          <select name="prioridade">
+            <option>Alta</option>
+            <option>Média</option>
+            <option>Baixa</option>
+          </select>
+        </div>
+        <button type="submit">Enviar Solicitação</button>
+      </form>
+    </section>
 
-        <section class="lista-solicitacoes">
-            <h2>Solicitações Ativas</h2>
-            <div class="filtros-status">
-                <button class="filtro-btn" onclick="filtrarPorStatus('em espera')">Em Espera</button>
-                <button class="filtro-btn" onclick="filtrarPorStatus('em andamento')">Em Andamento</button>
-                <button class="filtro-btn" onclick="filtrarPorStatus('concluido')">Concluído</button>
-            </div>
-            <table>
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Solicitante</th>
-                        <th>Equipamento</th>
-                        <th>Prioridade</th>
-                        <th>Técnico</th>
-                        <th>Status</th>
-                        <th>Ações</th>
-                    </tr>
-                </thead>
-                <tbody id="solicitacoesTable"></tbody>
-            </table>
-        </section>
-    </main>
+    <section class="lista-solicitacoes">
+      <h2>Solicitações Ativas</h2>
+      <div class="filtros-status">
+        <button class="filtro-btn" onclick="filtrarPorStatus('em espera')">Em Espera</button>
+        <button class="filtro-btn" onclick="filtrarPorStatus('em andamento')">Em Andamento</button>
+        <button class="filtro-btn" onclick="filtrarPorStatus('concluido')">Concluído</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Solicitante</th>
+            <th>Equipamento</th>
+            <th>Prioridade</th>
+            <th>Técnico</th>
+            <th>Status</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
+        <tbody id="solicitacoesTable"></tbody>
+      </table>
+    </section>
+  </main>
 
-    <script>
-        // Redireciona para a página de login se o usuário não estiver logado
-        if (!localStorage.getItem('loggedIn')) {
-            window.location.href = 'p1.html';
-        }
-
-        // Exibe o nome do usuário
-        const username = localStorage.getItem('username');
-        document.getElementById('username-display').textContent = `Olá, ${username}`;
-
-        // Recupera as solicitações do localStorage (ou inicia um array vazio)
-        let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
-        let filtroAtual = 'todos';
-
-        // Referência ao formulário de solicitação (seu id foi alterado para "solicitacaoSection")
-        const solicitacaoSection = document.getElementById('solicitacaoSection');
-
-        // Apenas o usuário "solicitante" deve ver o formulário de nova solicitação
-        if (username !== 'solicitante') {
-            solicitacaoSection.style.display = 'none';
-        } else {
-            solicitacaoSection.style.display = 'block';
-        }
-
-        // Função para carregar técnicos (caso seja necessário em outras partes do sistema)
-        function carregarTecnicos() {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            return tecnicos.filter(t => t.status === 'Disponível');
-        }
-
-        // Tratamento do envio do formulário de nova solicitação
-        document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const novaSolicitacao = {
-                id: Date.now(),
-                solicitante: formData.get('solicitante'),
-                equipamento: formData.get('equipamento'),
-                prioridade: formData.get('prioridade'),
-                tecnicoId: '',         // Sem técnico designado inicialmente
-                tecnicoNome: '',
-                status: 'em espera',
-                dataRegistro: new Date().toLocaleDateString()
-            };
-
-            solicitacoes.push(novaSolicitacao);
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            renderizarSolicitacoes();
-            e.target.reset();
-        });
-
-        // Atualiza o status de uma solicitação (usado no select da tabela)
-        function atualizarStatus(id, novoStatus) {
-            solicitacoes = solicitacoes.map(s => {
-                if (s.id === id) {
-                    // Se a solicitação for concluída e houver técnico designado, libera o técnico
-                    if (novoStatus === 'concluido' && s.tecnicoId) {
-                        const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                        const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
-                        if (tecnico) {
-                            tecnico.status = 'Disponível';
-                            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                        }
-                    }
-                    return { ...s, status: novoStatus };
-                }
-                return s;
-            });
-            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-            renderizarSolicitacoes();
-        }
-
-        // Filtra as solicitações por status
-        function filtrarPorStatus(status) {
-            filtroAtual = status;
-            document.querySelectorAll('.filtro-btn').forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.textContent.toLowerCase().includes(status)) {
-                    btn.classList.add('active');
-                }
-            });
-            renderizarSolicitacoes();
-        }
-
-        // Renderiza as solicitações na tabela
-        function renderizarSolicitacoes() {
-            const tbody = document.getElementById('solicitacoesTable');
-            let solicitacoesFiltradas = solicitacoes;
-            if (filtroAtual !== 'todos') {
-                solicitacoesFiltradas = solicitacoes.filter(s => s.status === filtroAtual);
-            }
-            tbody.innerHTML = solicitacoesFiltradas.map(s => `
-                <tr class="status-${s.status.replace(' ', '-')}">
-                    <td>${s.id}</td>
-                    <td>${s.solicitante}</td>
-                    <td>${s.equipamento}</td>
-                    <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-                    <td>${s.tecnicoNome || 'Não atribuído'}</td>
-                    <td>
-                        <select onchange="atualizarStatus(${s.id}, this.value)" class="status-select">
-                            <option value="em espera" ${s.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
-                            <option value="em andamento" ${s.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
-                            <option value="concluido" ${s.status === 'concluido' ? 'selected' : ''}>Concluído</option>
-                        </select>
-                    </td>
-                    <td>
-                        <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
-                    </td>
-                </tr>
-            `).join('');
-        }
-
-        // Deleta uma solicitação
-        function deletarSolicitacao(id) {
-            if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
-                const solicitacao = solicitacoes.find(s => s.id === id);
-                if (solicitacao && solicitacao.tecnicoId) {
-                    const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-                    const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
-                    if (tecnico) {
-                        tecnico.status = 'Disponível';
-                        localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-                    }
-                }
-                solicitacoes = solicitacoes.filter(s => s.id !== id);
-                localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-                renderizarSolicitacoes();
-            }
-        }
-
-        // Inicializa os dados
+  <script>
+    document.addEventListener('DOMContentLoaded', function () {
+      // Redireciona se não estiver logado
+      if (!localStorage.getItem('loggedIn')) {
+        window.location.href = 'p1.html';
+      }
+      
+      const username = localStorage.getItem('username');
+      document.getElementById('username-display').textContent = `Olá, ${username}`;
+      
+      let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
+      let filtroAtual = 'todos';
+      
+      // Apenas o usuário "solicitante" deve ver o formulário de nova solicitação
+      const solicitacaoSection = document.getElementById('solicitacaoSection');
+      if (username !== 'solicitante') {
+        solicitacaoSection.style.display = 'none';
+      } else {
+        solicitacaoSection.style.display = 'block';
+      }
+      
+      // Função para carregar técnicos
+      function carregarTecnicos() {
+        const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+        return tecnicos.filter(t => t.status === 'Disponível');
+      }
+      
+      // Envio do formulário de nova solicitação
+      document.getElementById('solicitacaoForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        const novaSolicitacao = {
+          id: Date.now(),
+          solicitante: formData.get('solicitante'),
+          equipamento: formData.get('equipamento'),
+          prioridade: formData.get('prioridade'),
+          tecnicoId: '',
+          tecnicoNome: '',
+          status: 'em espera',
+          dataRegistro: new Date().toLocaleDateString()
+        };
+        solicitacoes.push(novaSolicitacao);
+        localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
         renderizarSolicitacoes();
-
-        // Configuração dos itens do menu de acordo com o tipo de usuário
-        document.addEventListener('DOMContentLoaded', function () {
-            const menuItems = document.querySelectorAll('.menu-principal a');
-            // Oculta todos os itens do menu por padrão
-            menuItems.forEach(item => item.style.display = 'none');
-
-            if (username === 'admin') {
-                menuItems.forEach(item => item.style.display = 'block');
-            } else if (username === 'gestor') {
-                document.querySelector('.solicitante').style.display = 'block';
-                document.querySelector('.estoque').style.display = 'block';
-            } else if (username === 'técnico') {
-                document.querySelector('.solicitante').style.display = 'block';
-                document.querySelector('.tecnico').style.display = 'block';
-            } else if (username === 'solicitante') {
-                document.querySelector('.solicitante').style.display = 'block';
-                solicitacaoSection.style.display = 'block';
+        e.target.reset();
+      });
+      
+      // Função para atualizar o status da solicitação (apenas técnico pode alterar)
+      window.atualizarStatus = function(id, novoStatus) {
+        // Verifica se o usuário é técnico; se não, não faz nada
+        if (username !== 'técnico') return;
+        solicitacoes = solicitacoes.map(s => {
+          if (s.id === id) {
+            if (novoStatus === 'concluido' && s.tecnicoId) {
+              const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+              const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
+              if (tecnico) {
+                tecnico.status = 'Disponível';
+                localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+              }
             }
+            return { ...s, status: novoStatus };
+          }
+          return s;
         });
-
-        // Função de logout
-        function logout() {
-            localStorage.removeItem('loggedIn');
-            localStorage.removeItem('username');
-            window.location.href = 'index.html';
+        localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+        renderizarSolicitacoes();
+      }
+      
+      // Função para filtrar solicitações por status
+      window.filtrarPorStatus = function(status) {
+        filtroAtual = status;
+        document.querySelectorAll('.filtro-btn').forEach(btn => {
+          btn.classList.remove('active');
+          if (btn.textContent.toLowerCase().includes(status)) {
+            btn.classList.add('active');
+          }
+        });
+        renderizarSolicitacoes();
+      }
+      
+      // Renderiza a lista de solicitações
+      function renderizarSolicitacoes() {
+        const tbody = document.getElementById('solicitacoesTable');
+        let solicitacoesFiltradas = solicitacoes;
+        if (filtroAtual !== 'todos') {
+          solicitacoesFiltradas = solicitacoes.filter(s => s.status === filtroAtual);
         }
-    </script>
+        tbody.innerHTML = solicitacoesFiltradas.map(s => `
+          <tr class="status-${s.status.replace(' ', '-')}">
+            <td>${s.id}</td>
+            <td>${s.solicitante}</td>
+            <td>${s.equipamento}</td>
+            <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
+            <td>${s.tecnicoNome || 'Não atribuído'}</td>
+            <td>
+              ${username === 'técnico' ? `
+                <select onchange="atualizarStatus(${s.id}, this.value)" class="status-select">
+                  <option value="em espera" ${s.status === 'em espera' ? 'selected' : ''}>Em Espera</option>
+                  <option value="em andamento" ${s.status === 'em andamento' ? 'selected' : ''}>Em Andamento</option>
+                  <option value="concluido" ${s.status === 'concluido' ? 'selected' : ''}>Concluído</option>
+                </select>
+              ` : s.status }
+            </td>
+            <td>
+              <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
+            </td>
+          </tr>
+        `).join('');
+      }
+      
+      // Função para deletar uma solicitação
+      window.deletarSolicitacao = function(id) {
+        if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
+          const solicitacao = solicitacoes.find(s => s.id === id);
+          if (solicitacao && solicitacao.tecnicoId) {
+            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
+            if (tecnico) {
+              tecnico.status = 'Disponível';
+              localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            }
+          }
+          solicitacoes = solicitacoes.filter(s => s.id !== id);
+          localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+          renderizarSolicitacoes();
+        }
+      }
+      
+      // Configuração dos itens do menu de acordo com o tipo de usuário
+      const menuItems = document.querySelectorAll('.menu-principal a');
+      menuItems.forEach(item => item.style.display = 'none');
+      if (username === 'admin') {
+        menuItems.forEach(item => item.style.display = 'block');
+      } else if (username === 'gestor') {
+        document.querySelector('.solicitante').style.display = 'block';
+        document.querySelector('.estoque').style.display = 'block';
+      } else if (username === 'técnico') {
+        document.querySelector('.solicitante').style.display = 'block';
+        document.querySelector('.tecnico').style.display = 'block';
+      } else if (username === 'solicitante') {
+        document.querySelector('.solicitante').style.display = 'block';
+        solicitacaoSection.style.display = 'block';
+      }
+      
+      // Inicializa a renderização das solicitações
+      renderizarSolicitacoes();
+    });
+    
+    // Função de logout
+    function logout() {
+      localStorage.removeItem('loggedIn');
+      localStorage.removeItem('username');
+      window.location.href = 'index.html';
+    }
+  </script>
 </body>
 </html>
