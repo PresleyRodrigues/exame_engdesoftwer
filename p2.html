@@ -227,11 +227,11 @@
       }
       
       // Função para verificar o estoque do item (apenas para gestor)
-      window.verificarEstoque = function(estoque) {
-        const estoque = JSON.parse(localStorage.getItem('estoque')) || [];
+      window.verificarEstoque = function(equipamento) {
+        const estoque = JSON.parse(localStorage.getItem('equipamentos')) || [];
         const existe = estoque.some(eq => eq.nome === estoque);
         if (!existe) {
-          alert("Enviado de pedido de compra de equipamento enviado por email.");
+          alert("Pedido de compra enviado, por email ao departamento de compras.");
         } else {
           alert("O item existe em stock");
         }
