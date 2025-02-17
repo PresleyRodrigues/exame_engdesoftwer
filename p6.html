@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="p5.css">
 </head>
 <body>
-    <nav class="menu-principal">
+  <nav class="menu-principal">
     <a href="p2.html" class="solicitante">Solicitações</a>
     <a href="p3.html" class="estoque">Estoque</a>
     <a href="p4.html" class="tecnico">Técnicos</a>
@@ -28,8 +28,9 @@
         menuItems.forEach(item => item.style.display = 'none');
 
         if (username === 'admin') {
-            // Admin vê todas as opções
-            menuItems.forEach(item => item.style.display = 'block');
+            // Admin vê apenas as áreas de Estoque e Relatório
+            document.querySelector('.estoque').style.display = 'block';
+            document.querySelector('.relatorio').style.display = 'block';
         } else if (username === 'gestor') {
             // Gestor vê apenas Solicitante e Estoque
             document.querySelector('.solicitante').style.display = 'block';
