@@ -204,5 +204,28 @@
         carregarTecnicos();
         renderizarSolicitacoes();
     </script>
+script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const username = localStorage.getItem('username');
+        const menuItems = document.querySelectorAll('.menu-principal a');
+        const novaSolicitacaoSection = document.getElementById('novaSolicitacaoSection');
+
+        // Oculta todos os itens do menu
+        menuItems.forEach(item => item.style.display = 'none');
+
+        if (username === 'admin') {
+            menuItems.forEach(item => item.style.display = 'block');
+        } else if (username === 'gestor') {
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.estoque').style.display = 'block';
+        } else if (username === 'técnico') {
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.tecnico').style.display = 'block';
+        } else if (username === 'solicitante') {
+            document.querySelector('.solicitante').style.display = 'block';
+            novaSolicitacaoSection.style.display = 'block'; // Exibe o formulário apenas para solicitantes
+        }
+    });
+</script>
 </body>
 </html>
