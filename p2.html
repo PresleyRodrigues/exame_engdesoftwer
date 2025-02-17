@@ -8,15 +8,48 @@
 </head>
 <body>
   <nav class="menu-principal">
-    <a href="p2.html" class="active solicitante">Solicitações</a>
+    <a href="p2.html" class="solicitante">Solicitações</a>
     <a href="p3.html" class="estoque">Estoque</a>
     <a href="p4.html" class="tecnico">Técnicos</a>
-    <a href="p6.html" class="relatorio">Relatorio pr3</a>
+    <a href="p6.html" class="relatorio">Relatório</a>
     <div class="user-info">
-      <span id="username-display"></span>
-      <button onclick="logout()" class="logout-btn">Sair</button>
+        <span id="username-display"></span>
+        <button onclick="logout()" class="logout-btn">Sair</button>
     </div>
-  </nav>
+</nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const username = localStorage.getItem('username');
+        const menuItems = document.querySelectorAll('.menu-principal a');
+
+        // Oculta todos os itens do menu por padrão
+        menuItems.forEach(item => item.style.display = 'none');
+
+        if (username === 'admin') {
+            // Admin vê apenas as áreas de Estoque e Relatório
+            document.querySelector('.estoque').style.display = 'block';
+            document.querySelector('.relatorio').style.display = 'block';
+        } else if (username === 'gestor') {
+            // Gestor vê apenas Solicitante e Estoque
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.estoque').style.display = 'block';
+        } else if (username === 'técnico') {
+            // Técnico vê apenas Solicitante e Técnicos
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.tecnico').style.display = 'block';
+        } else if (username === 'solicitante') {
+            // Solicitante vê apenas sua própria área
+            document.querySelector('.solicitante').style.display = 'block';
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html'; // Redireciona para a página de login
+    }
+</script>
 
   <main>
     <h1>Gerenciamento de Solicitações</h1>
