@@ -82,7 +82,7 @@
       let solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
       let filtroAtual = 'todos';
       
-      // Apenas o usuário "solicitante" deve ver o formulário de nova solicitação
+      // Exibe o formulário de solicitação apenas para o usuário "solicitante"
       const solicitacaoSection = document.getElementById('solicitacaoSection');
       if (username !== 'solicitante') {
         solicitacaoSection.style.display = 'none';
@@ -92,8 +92,7 @@
       
       // Função para carregar técnicos
       function carregarTecnicos() {
-        const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-        return tecnicos.filter(t => t.status === 'Disponível');
+        return JSON.parse(localStorage.getItem('tecnicos')) || [];
       }
       
       // Envio do formulário de nova solicitação
@@ -116,14 +115,13 @@
         e.target.reset();
       });
       
-      // Função para atualizar o status da solicitação (apenas técnico pode alterar)
+      // Função para atualizar o status (apenas técnicos podem alterar)
       window.atualizarStatus = function(id, novoStatus) {
-        // Verifica se o usuário é técnico; se não, não faz nada
         if (username !== 'técnico') return;
         solicitacoes = solicitacoes.map(s => {
           if (s.id === id) {
             if (novoStatus === 'concluido' && s.tecnicoId) {
-              const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+              const tecnicos = carregarTecnicos();
               const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
               if (tecnico) {
                 tecnico.status = 'Disponível';
@@ -138,6 +136,33 @@
         renderizarSolicitacoes();
       }
       
+      // Função para atualizar a designação do técnico (apenas gestor pode alterar)
+      window.atualizarTecnico = function(id, tecnicoId) {
+        if (username !== 'gestor') return;
+        let tecnicos = carregarTecnicos();
+        const tecnico = tecnicos.find(t => t.id == tecnicoId);
+        const indice = solicitacoes.findIndex(s => s.id === id);
+        if (indice !== -1 && tecnico) {
+          // Se já havia um técnico designado e for diferente, liberamos o antigo
+          if (solicitacoes[indice].tecnicoId && solicitacoes[indice].tecnicoId != tecnicoId) {
+            let todosTecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            const antigo = todosTecnicos.find(t => t.id == solicitacoes[indice].tecnicoId);
+            if (antigo) {
+              antigo.status = 'Disponível';
+            }
+            localStorage.setItem('tecnicos', JSON.stringify(todosTecnicos));
+          }
+          solicitacoes[indice].tecnicoId = tecnicoId;
+          solicitacoes[indice].tecnicoNome = tecnico.nome;
+          solicitacoes[indice].status = 'em andamento';
+          // Marca o técnico escolhido como ocupado
+          tecnico.status = 'Ocupado';
+          localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+          localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+          renderizarSolicitacoes();
+        }
+      }
+      
       // Função para filtrar solicitações por status
       window.filtrarPorStatus = function(status) {
         filtroAtual = status;
@@ -150,7 +175,25 @@
         renderizarSolicitacoes();
       }
       
-      // Renderiza a lista de solicitações
+      // Função para retornar o seletor de técnico (para gestor)
+      function getTecnicoSelector(solicitacao) {
+        let tecnicos = carregarTecnicos().filter(t => t.status === 'Disponível');
+        // Se já há um técnico designado e ele não está disponível, adiciona-o à lista
+        if (solicitacao.tecnicoId && !tecnicos.some(t => t.id == solicitacao.tecnicoId)) {
+          const todosTecnicos = carregarTecnicos();
+          const assigned = todosTecnicos.find(t => t.id == solicitacao.tecnicoId);
+          if (assigned) {
+            tecnicos.push(assigned);
+          }
+        }
+        let options = '<option value="">Selecione um técnico</option>';
+        tecnicos.forEach(t => {
+          options += `<option value="${t.id}" ${t.id == solicitacao.tecnicoId ? 'selected' : ''}>${t.nome} - ${t.especialidade.join(', ')}</option>`;
+        });
+        return `<select onchange="atualizarTecnico(${solicitacao.id}, this.value)" class="tecnico-select">${options}</select>`;
+      }
+      
+      // Renderiza a lista de solicitações na tabela
       function renderizarSolicitacoes() {
         const tbody = document.getElementById('solicitacoesTable');
         let solicitacoesFiltradas = solicitacoes;
@@ -163,7 +206,9 @@
             <td>${s.solicitante}</td>
             <td>${s.equipamento}</td>
             <td><span class="prioridade ${s.prioridade.toLowerCase()}">${s.prioridade}</span></td>
-            <td>${s.tecnicoNome || 'Não atribuído'}</td>
+            <td>
+              ${username === 'gestor' ? getTecnicoSelector(s) : (s.tecnicoNome || 'Não atribuído')}
+            </td>
             <td>
               ${username === 'técnico' ? `
                 <select onchange="atualizarStatus(${s.id}, this.value)" class="status-select">
@@ -185,7 +230,7 @@
         if (confirm('Tem certeza que deseja excluir esta solicitação?')) {
           const solicitacao = solicitacoes.find(s => s.id === id);
           if (solicitacao && solicitacao.tecnicoId) {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+            const tecnicos = carregarTecnicos();
             const tecnico = tecnicos.find(t => t.id == solicitacao.tecnicoId);
             if (tecnico) {
               tecnico.status = 'Disponível';
