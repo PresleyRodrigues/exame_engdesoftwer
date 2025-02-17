@@ -69,21 +69,6 @@
         </div>
     </section>
 
-    <section class="dashboard-stats tecnicos">
-        <div class="stat-card total-tecnicos">
-            <h3>Total de Técnicos</h3>
-            <p id="total-tecnicos">0</p>
-        </div>
-        <div class="stat-card tecnicos-disponiveis">
-            <h3>Técnicos Disponíveis</h3>
-            <p id="tecnicos-disponiveis">0</p>
-        </div>
-        <div class="stat-card tecnicos-ocupados">
-            <h3>Técnicos Ocupados</h3>
-            <p id="tecnicos-ocupados">0</p>
-        </div>
-    </section>
-
     <section class="relatorios">
         <h2>Relatórios Disponíveis</h2>
         <div class="relatorios-grid">
@@ -103,15 +88,7 @@
     </section>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    if (!localStorage.getItem('loggedIn')) {
-        window.location.href = 'p1.html';
-    }
-
-    document.getElementById('username-display').textContent = 
-        `Olá, ${localStorage.getItem('username')}`;
-
     function gerarRelatorio(tipo) {
         const solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
         let dadosRelatorio;
@@ -154,5 +131,6 @@
         window.URL.revokeObjectURL(url);
     }
 </script>
+
 </body>
 </html>
