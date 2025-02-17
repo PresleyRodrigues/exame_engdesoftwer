@@ -27,8 +27,9 @@
         menuItems.forEach(item => item.style.display = 'none');
 
         if (username === 'admin') {
-            // Admin vê todas as opções
-            menuItems.forEach(item => item.style.display = 'block');
+            // Admin vê apenas as áreas de Estoque e Relatório
+            document.querySelector('.estoque').style.display = 'block';
+            document.querySelector('.relatorio').style.display = 'block';
         } else if (username === 'gestor') {
             // Gestor vê apenas Solicitante e Estoque
             document.querySelector('.solicitante').style.display = 'block';
