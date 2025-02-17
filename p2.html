@@ -11,7 +11,7 @@
     <a href="p2.html" class="active solicitante">Solicitações</a>
     <a href="p3.html" class="estoque">Estoque</a>
     <a href="p4.html" class="tecnico">Técnicos</a>
-    <a href="p6.html" class="relatorio">Relatorio</a>
+    <a href="p6.html" class="relatorio">Relatorio pr3</a>
     <div class="user-info">
       <span id="username-display"></span>
       <button onclick="logout()" class="logout-btn">Sair</button>
@@ -90,7 +90,7 @@
         solicitacaoSection.style.display = 'block';
       }
       
-      // Função para carregar técnicos
+      // Função para carregar técnicos e equipamentos
       function carregarTecnicos() {
         return JSON.parse(localStorage.getItem('tecnicos')) || [];
       }
@@ -115,7 +115,7 @@
         e.target.reset();
       });
       
-      // Função para atualizar o status (apenas técnicos podem alterar)
+      // Função para atualizar o status da solicitação (apenas técnico pode alterar)
       window.atualizarStatus = function(id, novoStatus) {
         if (username !== 'técnico') return;
         solicitacoes = solicitacoes.map(s => {
@@ -127,6 +127,7 @@
                 tecnico.status = 'Disponível';
                 localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
               }
+              alert("Equipamento entregue com sucesso");
             }
             return { ...s, status: novoStatus };
           }
@@ -175,6 +176,18 @@
         renderizarSolicitacoes();
       }
       
+      // Função para verificar o estoque do item (apenas para gestor)
+      window.verificarEstoque = function(equipamento) {
+        const equipamentos = JSON.parse(localStorage.getItem('equipamentos')) || [];
+        // Verifica se existe algum equipamento com nome igual (pode ser ajustado conforme necessário)
+        const existe = equipamentos.some(eq => eq.nome === equipamento);
+        if (!existe) {
+          alert("Nota de compra feita com sucesso");
+        } else {
+          alert("Item disponível no estoque");
+        }
+      }
+      
       // Função para retornar o seletor de técnico (para gestor)
       function getTecnicoSelector(solicitacao) {
         let tecnicos = carregarTecnicos().filter(t => t.status === 'Disponível');
@@ -219,6 +232,7 @@
               ` : s.status }
             </td>
             <td>
+              ${username === 'gestor' ? `<button onclick="verificarEstoque('${s.equipamento}')" class="btn-verificar">Verificar Item</button>` : ''}
               <button onclick="deletarSolicitacao(${s.id})" class="btn-excluir">Excluir</button>
             </td>
           </tr>
