@@ -8,274 +8,129 @@
     <link rel="stylesheet" href="p5.css">
 </head>
 <body>
-    <nav class="menu-principal">
-        <a href="p2.html">Solicitações</a>
-        <a href="p3.html">Estoque</a>
-        <a href="p4.html">Técnicos</a>
-        <a href="p6.html" class="active">Estatísticas</a>
-        <div class="user-info">
-            <span id="username-display"></span>
-            <button onclick="logout()" class="logout-btn">Sair</button>
+  <nav class="menu-principal">
+    <a href="p2.html" class="solicitante">Solicitações</a>
+    <a href="p3.html" class="estoque">Estoque</a>
+    <a href="p4.html" class="tecnico">Técnicos</a>
+    <a href="p6.html" class="relatorio">Relatório</a>
+    <div class="user-info">
+        <span id="username-display"></span>
+        <button onclick="logout()" class="logout-btn">Sair</button>
+    </div>
+</nav>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const username = localStorage.getItem('username');
+        const menuItems = document.querySelectorAll('.menu-principal a');
+
+        menuItems.forEach(item => item.style.display = 'none');
+
+        if (username === 'admin') {
+            document.querySelector('.estoque').style.display = 'block';
+            document.querySelector('.relatorio').style.display = 'block';
+        } else if (username === 'gestor') {
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.estoque').style.display = 'block';
+        } else if (username === 'técnico') {
+            document.querySelector('.solicitante').style.display = 'block';
+            document.querySelector('.tecnico').style.display = 'block';
+        } else if (username === 'solicitante') {
+            document.querySelector('.solicitante').style.display = 'block';
+        }
+    });
+
+    function logout() {
+        localStorage.removeItem('loggedIn');
+        localStorage.removeItem('username');
+        window.location.href = 'index.html';
+    }
+</script>
+
+<main>
+    <h1>Estatísticas e Relatórios</h1>
+
+    <section class="dashboard-stats">
+        <div class="stat-card total">
+            <h3>Total de Solicitações</h3>
+            <p id="total-solicitacoes">0</p>
         </div>
-    </nav>
+        <div class="stat-card espera">
+            <h3>Em Espera</h3>
+            <p id="total-espera">0</p>
+        </div>
+        <div class="stat-card andamento">
+            <h3>Em Andamento</h3>
+            <p id="total-andamento">0</p>
+        </div>
+        <div class="stat-card concluido">
+            <h3>Concluídas</h3>
+            <p id="total-concluido">0</p>
+        </div>
+    </section>
 
-    <main>
-        <h1>Estatísticas e Relatórios</h1>
+    <section class="relatorios">
+        <h2>Relatórios Disponíveis</h2>
+        <div class="relatorios-grid">
+            <div class="relatorio-card">
+                <h3>Solicitações em Espera</h3>
+                <button onclick="gerarRelatorio('espera')">Baixar Relatório</button>
+            </div>
+            <div class="relatorio-card">
+                <h3>Solicitações em Andamento</h3>
+                <button onclick="gerarRelatorio('andamento')">Baixar Relatório</button>
+            </div>
+            <div class="relatorio-card">
+                <h3>Solicitações Concluídas</h3>
+                <button onclick="gerarRelatorio('concluido')">Baixar Relatório</button>
+            </div>
+        </div>
+    </section>
+</main>
 
-        <!-- Seção de Solicitações -->
-        <section class="dashboard-stats">
-            <div class="stat-card total">
-                <h3>Total de Solicitações</h3>
-                <p id="total-solicitacoes">0</p>
-            </div>
-            <div class="stat-card espera">
-                <h3>Em Espera</h3>
-                <p id="total-espera">0</p>
-            </div>
-            <div class="stat-card andamento">
-                <h3>Em Andamento</h3>
-                <p id="total-andamento">0</p>
-            </div>
-            <div class="stat-card concluido">
-                <h3>Concluídas</h3>
-                <p id="total-concluido">0</p>
-            </div>
-        </section>
+<script>
+    function gerarRelatorio(tipo) {
+        const solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
+        let dadosRelatorio;
 
-        <!-- Seção de Técnicos -->
-        <section class="dashboard-stats tecnicos">
-            <div class="stat-card total-tecnicos">
-                <h3>Total de Técnicos</h3>
-                <p id="total-tecnicos">0</p>
-            </div>
-            <div class="stat-card tecnicos-disponiveis">
-                <h3>Técnicos Disponíveis</h3>
-                <p id="tecnicos-disponiveis">0</p>
-            </div>
-            <div class="stat-card tecnicos-ocupados">
-                <h3>Técnicos Ocupados</h3>
-                <p id="tecnicos-ocupados">0</p>
-            </div>
-        </section>
-
-        <section class="graficos">
-            <div class="grafico-container">
-                <h2>Status das Solicitações</h2>
-                <canvas id="graficoStatus"></canvas>
-            </div>
-            <div class="grafico-container">
-                <h2>Distribuição de Técnicos por Especialidade</h2>
-                <canvas id="graficoTecnicos"></canvas>
-            </div>
-        </section>
-
-        <section class="relatorios">
-            <h2>Relatórios Disponíveis</h2>
-            <div class="relatorios-grid">
-                <!-- Relatórios de Solicitações -->
-                <div class="relatorio-card">
-                    <h3>Solicitações em Espera</h3>
-                    <button onclick="gerarRelatorio('espera')">Baixar Relatório</button>
-                </div>
-                <div class="relatorio-card">
-                    <h3>Solicitações em Andamento</h3>
-                    <button onclick="gerarRelatorio('andamento')">Baixar Relatório</button>
-                </div>
-                <div class="relatorio-card">
-                    <h3>Solicitações Concluídas</h3>
-                    <button onclick="gerarRelatorio('concluido')">Baixar Relatório</button>
-                </div>
-                <!-- Relatórios de Técnicos -->
-                <div class="relatorio-card">
-                    <h3>Técnicos por Especialidade</h3>
-                    <button onclick="gerarRelatorioTecnicos('especialidade')">Baixar Relatório</button>
-                </div>
-                <div class="relatorio-card">
-                    <h3>Técnicos Disponíveis</h3>
-                    <button onclick="gerarRelatorioTecnicos('disponiveis')">Baixar Relatório</button>
-                </div>
-                <div class="relatorio-card">
-                    <h3>Relatório Completo</h3>
-                    <button onclick="gerarRelatorioCompleto()">Baixar Relatório</button>
-                </div>
-            </div>
-        </section>
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script>
-        if (!localStorage.getItem('loggedIn')) {
-            window.location.href = 'p1.html';
+        switch(tipo) {
+            case 'espera':
+                dadosRelatorio = solicitacoes
+                    .filter(s => s.status === 'em espera')
+                    .map(s => `ID: ${s.id}\nSolicitante: ${s.solicitante}\nEquipamento: ${s.equipamento}\nStatus: ${s.status}\nData: ${s.dataRegistro}\n------------------------\n`)
+                    .join('\n');
+                break;
+            case 'andamento':
+                dadosRelatorio = solicitacoes
+                    .filter(s => s.status === 'em andamento')
+                    .map(s => `ID: ${s.id}\nSolicitante: ${s.solicitante}\nEquipamento: ${s.equipamento}\nStatus: ${s.status}\nData: ${s.dataRegistro}\n------------------------\n`)
+                    .join('\n');
+                break;
+            case 'concluido':
+                dadosRelatorio = solicitacoes
+                    .filter(s => s.status === 'concluido')
+                    .map(s => `ID: ${s.id}\nSolicitante: ${s.solicitante}\nEquipamento: ${s.equipamento}\nStatus: ${s.status}\nData: ${s.dataRegistro}\n------------------------\n`)
+                    .join('\n');
+                break;
+            default:
+                dadosRelatorio = "Nenhum dado encontrado.";
         }
 
-        document.getElementById('username-display').textContent = 
-            `Olá, ${localStorage.getItem('username')}`;
+        downloadRelatorio(dadosRelatorio, `relatorio-solicitacoes-${tipo}`);
+    }
 
-        function atualizarEstatisticas() {
-            const solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            
-            // Estatísticas de Solicitações
-            const totais = {
-                total: solicitacoes.length,
-                espera: solicitacoes.filter(s => s.status === 'em espera').length,
-                andamento: solicitacoes.filter(s => s.status === 'em andamento').length,
-                concluido: solicitacoes.filter(s => s.status === 'concluido').length
-            };
+    function downloadRelatorio(conteudo, nomeArquivo) {
+        const blob = new Blob([conteudo], { type: 'text/plain' });
+        const url = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `${nomeArquivo}-${new Date().toISOString().split('T')[0]}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+    }
+</script>
 
-            // Estatísticas de Técnicos
-            const totaisTecnicos = {
-                total: tecnicos.length,
-                disponiveis: tecnicos.filter(t => t.status === 'Disponível').length,
-                ocupados: tecnicos.filter(t => t.status !== 'Disponível').length
-            };
-
-            // Atualizar números
-            document.getElementById('total-solicitacoes').textContent = totais.total;
-            document.getElementById('total-espera').textContent = totais.espera;
-            document.getElementById('total-andamento').textContent = totais.andamento;
-            document.getElementById('total-concluido').textContent = totais.concluido;
-            
-            document.getElementById('total-tecnicos').textContent = totaisTecnicos.total;
-            document.getElementById('tecnicos-disponiveis').textContent = totaisTecnicos.disponiveis;
-            document.getElementById('tecnicos-ocupados').textContent = totaisTecnicos.ocupados;
-
-            // Gráfico de Solicitações
-            const ctxSolicitacoes = document.getElementById('graficoStatus').getContext('2d');
-            new Chart(ctxSolicitacoes, {
-                type: 'doughnut',
-                data: {
-                    labels: ['Em Espera', 'Em Andamento', 'Concluídas'],
-                    datasets: [{
-                        data: [totais.espera, totais.andamento, totais.concluido],
-                        backgroundColor: ['#ffa726', '#29b6f6', '#66bb6a']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'bottom' }
-                    }
-                }
-            });
-
-            // Gráfico de Técnicos por Especialidade
-            const especialidades = {};
-            tecnicos.forEach(tecnico => {
-                tecnico.especialidade.forEach(esp => {
-                    especialidades[esp] = (especialidades[esp] || 0) + 1;
-                });
-            });
-
-            const ctxTecnicos = document.getElementById('graficoTecnicos').getContext('2d');
-            new Chart(ctxTecnicos, {
-                type: 'bar',
-                data: {
-                    labels: Object.keys(especialidades),
-                    datasets: [{
-                        label: 'Técnicos por Especialidade',
-                        data: Object.values(especialidades),
-                        backgroundColor: '#3498db'
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-
-        function gerarRelatorioTecnicos(tipo) {
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            let dadosRelatorio;
-
-            switch(tipo) {
-                case 'especialidade':
-                    const especialidades = {};
-                    tecnicos.forEach(t => {
-                        t.especialidade.forEach(esp => {
-                            if (!especialidades[esp]) especialidades[esp] = [];
-                            especialidades[esp].push(t.nome);
-                        });
-                    });
-                    dadosRelatorio = Object.entries(especialidades).map(([esp, tecs]) => 
-                        `Especialidade: ${esp}\nTécnicos: ${tecs.join(', ')}\n------------------------\n`
-                    ).join('\n');
-                    break;
-                case 'disponiveis':
-                    dadosRelatorio = tecnicos
-                        .filter(t => t.status === 'Disponível')
-                        .map(t => `Nome: ${t.nome}\nEspecialidades: ${t.especialidade.join(', ')}\n------------------------\n`)
-                        .join('\n');
-                    break;
-                default:
-                    dadosRelatorio = tecnicos.map(t => 
-                        `Nome: ${t.nome}\nEspecialidades: ${t.especialidade.join(', ')}\nStatus: ${t.status}\n------------------------\n`
-                    ).join('\n');
-            }
-
-            downloadRelatorio(dadosRelatorio, `relatorio-tecnicos-${tipo}`);
-        }
-
-        function gerarRelatorioCompleto() {
-            const solicitacoes = JSON.parse(localStorage.getItem('solicitacoes')) || [];
-            const tecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-
-            const relatorio = `
-RELATÓRIO COMPLETO DO SISTEMA
-Data: ${new Date().toLocaleDateString()}
-============================
-
-SOLICITAÇÕES
------------
-Total: ${solicitacoes.length}
-Em Espera: ${solicitacoes.filter(s => s.status === 'em espera').length}
-Em Andamento: ${solicitacoes.filter(s => s.status === 'em andamento').length}
-Concluídas: ${solicitacoes.filter(s => s.status === 'concluido').length}
-
-TÉCNICOS
---------
-Total: ${tecnicos.length}
-Disponíveis: ${tecnicos.filter(t => t.status === 'Disponível').length}
-Ocupados: ${tecnicos.filter(t => t.status !== 'Disponível').length}
-
-DETALHES DAS SOLICITAÇÕES
-------------------------
-${solicitacoes.map(s => `
-ID: ${s.id}
-Solicitante: ${s.solicitante}
-Equipamento: ${s.equipamento}
-Status: ${s.status}
-Data: ${s.dataRegistro}
-`).join('\n------------------------\n')}
-
-DETALHES DOS TÉCNICOS
---------------------
-${tecnicos.map(t => `
-Nome: ${t.nome}
-Especialidades: ${t.especialidade.join(', ')}
-Status: ${t.status}
-`).join('\n------------------------\n')}
-`;
-
-            downloadRelatorio(relatorio, 'relatorio-completo');
-        }
-
-        function downloadRelatorio(conteudo, nomeArquivo) {
-            const blob = new Blob([conteudo], { type: 'text/plain' });
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${nomeArquivo}-${new Date().toISOString().split('T')[0]}.txt`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        }
-
-        atualizarEstatisticas();
-    </script>
 </body>
 </html>
