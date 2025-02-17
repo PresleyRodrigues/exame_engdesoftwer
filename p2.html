@@ -16,9 +16,9 @@
         <span id="username-display"></span>
         <button onclick="logout()" class="logout-btn">Sair</button>
     </div>
-</nav>
+  </nav>
 
-<script>
+  <script>
     document.addEventListener('DOMContentLoaded', function () {
         const username = localStorage.getItem('username');
         const menuItems = document.querySelectorAll('.menu-principal a');
@@ -49,7 +49,7 @@
         localStorage.removeItem('username');
         window.location.href = 'index.html'; // Redireciona para a página de login
     }
-</script>
+  </script>
 
   <main>
     <h1>Gerenciamento de Solicitações</h1>
@@ -123,7 +123,7 @@
         solicitacaoSection.style.display = 'block';
       }
       
-      // Função para carregar técnicos e equipamentos
+      // Função para carregar técnicos (e equipamentos, se necessário)
       function carregarTecnicos() {
         return JSON.parse(localStorage.getItem('tecnicos')) || [];
       }
@@ -153,7 +153,17 @@
         if (username !== 'técnico') return;
         solicitacoes = solicitacoes.map(s => {
           if (s.id === id) {
-            if (novoStatus === 'concluido' && s.tecnicoId) {
+            // Se a solicitação já estiver concluída, não permite alteração
+            if (s.status === 'concluido') {
+              alert("Solicitação já concluída. Não é possível alterar o status.");
+              return s;
+            }
+            // Permite atualizar o status somente se houver um técnico designado
+            if (!s.tecnicoId) {
+              alert("Não é possível atualizar o status, pois nenhum técnico foi designado.");
+              return s;
+            }
+            if (novoStatus === 'concluido') {
               const tecnicos = carregarTecnicos();
               const tecnico = tecnicos.find(t => t.id == s.tecnicoId);
               if (tecnico) {
@@ -174,26 +184,33 @@
       window.atualizarTecnico = function(id, tecnicoId) {
         if (username !== 'gestor') return;
         let tecnicos = carregarTecnicos();
-        const tecnico = tecnicos.find(t => t.id == tecnicoId);
         const indice = solicitacoes.findIndex(s => s.id === id);
-        if (indice !== -1 && tecnico) {
-          // Se já havia um técnico designado e for diferente, liberamos o antigo
-          if (solicitacoes[indice].tecnicoId && solicitacoes[indice].tecnicoId != tecnicoId) {
-            let todosTecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
-            const antigo = todosTecnicos.find(t => t.id == solicitacoes[indice].tecnicoId);
-            if (antigo) {
-              antigo.status = 'Disponível';
-            }
-            localStorage.setItem('tecnicos', JSON.stringify(todosTecnicos));
+        if (indice !== -1) {
+          // Se a solicitação já estiver concluída, não permite alteração do técnico
+          if (solicitacoes[indice].status === 'concluido') {
+            alert("Solicitação já concluída. Não é possível alterar o técnico.");
+            return;
           }
-          solicitacoes[indice].tecnicoId = tecnicoId;
-          solicitacoes[indice].tecnicoNome = tecnico.nome;
-          solicitacoes[indice].status = 'em andamento';
-          // Marca o técnico escolhido como ocupado
-          tecnico.status = 'Ocupado';
-          localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
-          localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
-          renderizarSolicitacoes();
+          const tecnico = tecnicos.find(t => t.id == tecnicoId);
+          if (tecnico) {
+            // Se já havia um técnico designado e for diferente, liberamos o antigo
+            if (solicitacoes[indice].tecnicoId && solicitacoes[indice].tecnicoId != tecnicoId) {
+              let todosTecnicos = JSON.parse(localStorage.getItem('tecnicos')) || [];
+              const antigo = todosTecnicos.find(t => t.id == solicitacoes[indice].tecnicoId);
+              if (antigo) {
+                antigo.status = 'Disponível';
+              }
+              localStorage.setItem('tecnicos', JSON.stringify(todosTecnicos));
+            }
+            solicitacoes[indice].tecnicoId = tecnicoId;
+            solicitacoes[indice].tecnicoNome = tecnico.nome;
+            solicitacoes[indice].status = 'em andamento';
+            // Marca o técnico escolhido como ocupado
+            tecnico.status = 'Ocupado';
+            localStorage.setItem('solicitacoes', JSON.stringify(solicitacoes));
+            localStorage.setItem('tecnicos', JSON.stringify(tecnicos));
+            renderizarSolicitacoes();
+          }
         }
       }
       
@@ -212,12 +229,11 @@
       // Função para verificar o estoque do item (apenas para gestor)
       window.verificarEstoque = function(equipamento) {
         const equipamentos = JSON.parse(localStorage.getItem('equipamentos')) || [];
-        // Verifica se existe algum equipamento com nome igual (pode ser ajustado conforme necessário)
         const existe = equipamentos.some(eq => eq.nome === equipamento);
         if (!existe) {
-          alert("Nota de compra feita com sucesso");
+          alert("Enviado nota de crédito");
         } else {
-          alert("Item disponível no estoque");
+          alert("O item existe em stock");
         }
       }
       
@@ -289,8 +305,6 @@
           renderizarSolicitacoes();
         }
       }
-      
-     
       
       // Inicializa a renderização das solicitações
       renderizarSolicitacoes();
